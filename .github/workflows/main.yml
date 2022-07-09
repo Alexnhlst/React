@@ -21,3 +21,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           message: "synchronizing Readme"
           silent: true
+      - name: Markdown Embed Code From File
+        uses: tokusumi/markdown-embed-code@v1.0;.0
