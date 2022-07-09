@@ -30,6 +30,6 @@ React tries to solve this problem for you and it does it with **the help of a *v
 
 ## Object Elements
 
-```javascript:index.html [61-69]
+```javascript:src/index.html [61-69]
 
 ```
