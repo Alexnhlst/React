@@ -30,6 +30,14 @@ React tries to solve this problem for you and it does it with **the help of a *v
 
 ## Object Elements
 
-```html:src/index.html [61-69]
-
+```javascript
+ // A simple element
+      let anotherElement = {
+        $$typeof: magicValue,
+        ref: null,
+        type: "p",
+        props: {
+          children: "A nice text paragraph",
+        },
+      };
 ```
