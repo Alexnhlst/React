@@ -2,7 +2,7 @@
 
 ## Table of contents
 
-1. [Basics](/../../tree/01-basics/BASICS.MD)
+1. [Basics](/../../tree/01-basics/README.MD)
 
 ---
 
