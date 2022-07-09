@@ -1,0 +1,77 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React</title>
+    <!-- Script to load React from a CDN -->
+    <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Render target for the React app -->
+    </div>
+
+    <script>
+      // React uses ES2015 Symbols to "tag" its element-objects.
+      // It uses a magic number as fallback on older browsers.
+      let magicValue = (Symbol && Symbol.for("react.element")) || 0xeac7;
+
+      // React uses virtual DOM elements, which become real DOM elements
+      // on a render. A virtual DOM element can be defined as a simple
+      // object literal. Normally you would use the React.createElement()
+      // to create an element. This is what the return value of a
+      // React.createElement() call could look like.
+      let reactElement = {
+        // This special property will be checked by React to ensure this object
+        // is a React element and not just some user data
+        // React.createElement() sets it for you
+        $$typeof: magicValue,
+
+        // This will also be checked by React. If references are not used, this
+        // has to be set to null and not undefined
+        ref: null,
+
+        // This defines the HTML-tag
+        type: "h1",
+
+        // This defines the properties that get passed down to the element
+        props: {
+          // In this example there is just a single text node as child
+          children: "Hello, world!",
+
+          // a CSS class
+          className: "abc",
+
+          // styles can be passed as object literals
+          // React uses camelCase instead of dashed-case (like CSS/D3 do)
+          style: {
+            textAlign: "center",
+          },
+
+          // event handlers can be added as properties
+          // React uses synthetic events to try to normalize browser behavior
+          onClick: function (notYourRegularEvent) {
+            alert("click");
+          },
+        },
+      };
+
+      // A simple element
+      let anotherElement = {
+        $$typeof: magicValue,
+        ref: null,
+        type: "p",
+        props: {
+          children: "A nice text paragraph",
+        },
+      };
+
+      // React needs a DOM element as render target
+      let renderTarget = document.getElementById("app");
+
+      // ReactDOM is responsible for inserting the element into the DOM
+    </script>
+  </body>
+</html>
