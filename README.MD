@@ -105,3 +105,34 @@ React creates one of these symbols and then checks if objects contain it inside 
 ---
 
 ## Element Factory
+
+React provides a helper function called `React.createElement()`. It adds `$$type` and `ref` attributes to your element definitions every time you call it.
+
+To refactor the code written in the previous section:
+
+```javascript
+let anotherElement = React.createElement('p', null, "A nice text paragraph.")
+```
+
+The `createElement` function takes three arguments:
+  1. The `type` of the element we want to create
+  2. The `props` of the element, things like event handlers or styles. It must be `null` if no `props` are used.
+  3. The `children` of the element. While children are also `props`, React allows to add them via an extra parameter
+
+The more complex element would look like this:
+
+```javascript
+let reactElement = React.createElement(
+  "h1",
+  {
+    className: "abc",
+    sstyle: {
+      textAlign: "Center"
+    },
+    onClick: function() {
+      alert("click");
+    }
+  },
+  "Hello, world!"
+)
+```
