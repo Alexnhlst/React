@@ -1,0 +1,59 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prop</title>
+    <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script type="text/babel">
+      // Components, like elements, can use properties
+      function MyComponent(props) {
+        return (
+          <div className={props.classname}>
+            <h1>Hello</h1>
+            <h2>{props.customData}</h2>
+          </div>
+        );
+      }
+
+      // Add the defaultProps property to set the defaults if nothing was provided by the user
+      MyComponent.defaultProps = {
+        customData: "default-data",
+        className: "default-class",
+      };
+
+      let reactElement = <MyComponent className="abc" customData="world" />;
+
+      // Which also works with an object and the spread operator
+      let props = {
+        className: "abc",
+        customData: "world",
+      };
+
+      reactElement = <MyComponent {...props} />;
+
+      // This allows components with dynamic content
+      let planets = ["earth", "mars", "venus"];
+
+      // If an array is used as a "child node" each child needs a unique key-property
+      // This map call with return an array of components
+      let elements = planets.map(function (planet, index) {
+        return (
+          <MyComponent className="myClass" customData={planet} key={index} />
+        );
+      });
+
+      reactElement = <div>{elements}</div>;
+
+      let renderTarget = document.getElementById("app");
+
+      ReactDOM.render(reactElement, renderTarget);
+    </script>
+  </body>
+</html>

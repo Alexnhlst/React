@@ -1,0 +1,47 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prop Types</title>
+    <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/prop-types@15.6.1/prop-types.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <script type="text/babel">
+        // Components get created to encapsulate stuff that should be together in one place and for reuse.
+        // Reuse requires the user of the component to supply the correct properties so we can define a type
+        // of each property and set defaults
+
+        function MyComponent(props) {
+          return (
+            <div className={props.className}>
+              <h1>Hello</h1>
+              <h2>{props.customData}</h2>
+            </div>
+          );
+        }
+
+        // Add tghe propTypes property to the component function to let it validate its properties
+        MyComponent.propTypes = {
+          // React supplies us with a bunch of types, like string
+          customData: PropTypes.string,
+        };
+
+        // This will show a warning in the console, because customData should
+        // be a string
+        let reactElement = <MyComponent customData={123} />;
+
+        // This will use the defaults
+        reactElement = <MyComponent />;
+
+        var renderTarget = document.getElementById("app");
+
+        ReactDOM.render(reactElement, renderTarget);
+      </script>
+    </div>
+  </body>
+</html>
