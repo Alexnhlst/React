@@ -3,6 +3,7 @@
 ## Table of contents
 
 1. [Basics](/../../tree/01-basics/README.MD)
+2. [JSX](/../../tree/02-jsx/README.MD)
 
 ---
 
