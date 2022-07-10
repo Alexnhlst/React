@@ -8,6 +8,7 @@
 4. [Props](/../../tree/04-props/README.MD)
 5. [Nested and Class Components](/../../tree/05-nested-class-components/README.MD)
 6. [Lifecycle Methods](/../../tree/06-lifecycle-methods/README.MD)
+7. [Example app](/../../tree/07-example-app/README.MD)
 
 
 [^1]: [Book](https://www.newline.co/react-from-zero/)
