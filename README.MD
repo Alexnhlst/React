@@ -2,8 +2,23 @@
 
 ## Table of contents
 
-1. [componentDidMount()](#componentdidmount)
-2. [componentWillUnmount()](#componentwillunmount)
+1. [Diagram](#diagram)
+2. [componentDidMount()](#componentdidmount)
+3. [componentWillUnmount()](#componentwillunmount)
+4. [componentDidUpdate()](#componentdidupdate)
+5. [shouldComponentUpdate()](#shouldcomponentupdate)
+6. [getDerivedStateFromProps()](#getderivedstatefromprops)
+7. [getSnapshotBeforeUpdate()](#getsnapshotbeforeupdate)
+8. [forceUpdate()](#forceupdate) 
+
+---
+
+## Diagram
+
+<div align="center">
+    <img src="./lifecycle-diagram.png" alt="Lifecycle Diagram"/>
+</div>
+
 
 ---
 
@@ -12,3 +27,23 @@
 ---
 
 ## componentWillUnmount()
+
+---
+
+## componentDidUpdate()
+
+---
+
+## shouldComponentUpdate()
+
+---
+
+## getDerivedStateFromProps()
+
+---
+
+## getSnapshotBeforeUpdate()
+
+---
+
+## forceUpdate()
