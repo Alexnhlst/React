@@ -1,0 +1,93 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Class Components</title>
+    <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/prop-types@15.6.1/prop-types.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script
+      src="https://unpkg.com/create-react-class@15.6.3/create-react-class.js"
+    >
+      // React.createClass was removed from React 16, it's now a own package
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script type="text/babel">
+      // Often a component needs to maintain some internal state, for example if there is an interaction involved
+      // in this case a component function is not sufficient, since it can only have properties and no state
+      // We need a component class with a render function
+      let MyComponent = createReactClass({
+        // used for type-checking of the properties same as with the component function
+        propTypes: {
+          color: PropTypes.string,
+        },
+
+        // This method sets default values for missing properties
+        // it will be called by React before the components get mounted into the DOM
+        getDefaultProps: function () {
+          return { color: "green" };
+        },
+
+        // this method sets the initial state for the component
+        // it will be called by React before the components gets mounted into the DOM
+        // if this method is missing, this.state will be undefined
+        getInitialState: function () {
+          // The state can be any JavaScript value, often it is an object
+          return { times: 0 };
+        },
+
+        // this method handlesall the clicks on the <span> element
+        handleClick: function () {
+          // setState() can be called with an object that contains the new state
+          // normally this triggers a call of render(), but React can batch multiple calls and defer the render() call (make the call asynchronous)
+          // to prevent this, setState can take a callback instead
+
+          // This can lead to unexpected behavior, if we rely on this.state or this.props for our calculations
+          // this.setState({times: this.state.times + 1})
+
+          // The callback version doesn't have this problem, it gets the right state and props at time of the update
+          this.setState(function (prevState, props) {
+            return { tims: prevState.times + 1 };
+          });
+        },
+
+        // this method will be called by React after the component got mounted into the DOM
+        // also every time this.setState() was called
+        render: function () {
+          // using the prop given by the creator of this component properties
+          // are now in this.props instead of the props argument
+          let style = { color: this.props.color };
+
+          // returning an element with a click-handler and the props and state values
+          // state is stored in this.state
+          return (
+            <span onClick={this.handleClick} style={style}>
+              Clicked {this.state.times} times
+            </span>
+          );
+        },
+      });
+
+      // Creating some instances of the interactive stateful component class
+      // one with default color
+      let reactElement = (
+        <div>
+          <MyComponent color="red" />
+          <br />
+          <MyComponent color="blue" />
+          <br />
+          <MyComponent />
+        </div>
+      );
+
+      let renderTarget = document.getElementById("app");
+
+      ReactDOM.render(reactElement, renderTarget);
+    </script>
+  </body>
+</html>

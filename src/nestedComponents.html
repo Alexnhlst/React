@@ -1,0 +1,50 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nested Components</title>
+    <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script type="text/babel">
+      // Components can be nested
+      // for this, the children property is used inside the component
+
+      // This component just wraps its children in an <li> element
+      function Item(props) {
+        return <li>{props.children}</li>;
+      }
+
+      // This component wraps its children into an <ul> element
+      function List(props) {
+        return <ul>{props.children}</ul>;
+      }
+
+      // If the <List> is created without children it gets a default child
+      List.defaultProps = {
+        children: <Item>Empty</Item>,
+      };
+
+      // Now we render two <List>s, without and with Items
+      let reactElement = (
+        <div>
+          <List />
+          <List>
+            <Item>First</Item>
+            <Item>Second</Item>
+            <Item>Third</Item>
+          </List>
+        </div>
+      );
+
+      let renderTarget = document.getElementById("app");
+
+      ReactDOM.render(reactElement, renderTarget);
+    </script>
+  </body>
+</html>
