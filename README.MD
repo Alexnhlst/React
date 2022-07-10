@@ -4,6 +4,8 @@
 
 1. [What's the point of React?](#whats-the-point-of-react)
 2. [Object Elements](#object-elements)
+3. [A Complex Element](#a-complex-element)
+4. [Element Factory](#element-factory)
 
 ---
 
@@ -41,3 +43,65 @@ React tries to solve this problem for you and it does it with **the help of a *v
         },
       };
 ```
+
+For this object, the first part `$$typeof` is used bt *React* to differentiate between simple objects and React elements.
+`Symbol` si a relatively new object in JavaScript and not all browsers support it. If you use a browser with a JavaScript version that doesn't support symbols, the mugic number `0xeac7` is used.
+
+> The idea of **symbols** is that they are globally unique. If someone wants to access an attribute that use a symbol as an object key or tries to check if something equals a specific symbol, they have to explicitly get that symbol with `Symbol.for()` function.
+
+>The term **magic nubmer** can have different meaning in programming. In this case, it means a constant numerical or text value used to identify a file format or protocol. This magic number is arbitrary. It's just a number selected by the React team as an identifier to be used for all React element objects.
+
+React creates one of these symbols and then checks if objects contain it inside ther `$$typeof` attribute. The second part of `anotherElement` is the `ref`. It can be used to store a reference to the corresponding DOM element after this React element is rendered into the DOM. The `type` tells React what kind of DOm element it should create for this object. `props` is React's way to *pass data down the element tree*
+
+---
+
+## A Complex Element
+
+```javascript
+ let reactElement = {
+        // This special property will be checked by React to ensure this object
+        // is a React element and not just some user data
+        // React.createElement() sets it for you
+        $$typeof: magicValue,
+
+        // This will also be checked by React. If references are not used, this
+        // has to be set to null and not undefined
+        ref: null,
+
+        // This defines the HTML-tag
+        type: "h1",
+
+        // This defines the properties that get passed down to the element
+        props: {
+          // In this example there is just a single text node as child
+          children: "Hello, world!",
+
+          // a CSS class
+          className: "abc",
+
+          // styles can be passed as object literals
+          // React uses camelCase instead of dashed-case (like CSS/D3 do)
+          style: {
+            textAlign: "center",
+          },
+
+          // event handlers can be added as properties
+          // React uses synthetic events to try to normalize browser behavior
+          onClick: function (notYourRegularEvent) {
+            alert("click");
+          },
+        },
+      };
+```
+
+`className` is the React way to add a CSS `class` attribute to an element, it makes it easy to style your React elements.
+
+> The `className` is a DOM element property used to set the value of class attribute of that element. React avoided using `class` because it is a reserved word in JavaScript
+
+`srtyle` in HTML is normally a string attribute, but for React it has to be an object. It uses `camelCase` instead of `kebab-case` what you would expect from CSS. `onClick` is the way to add *event handlers* to objects. They are written in `camelCase` instead of `lowercase` and you can pass functions directly without the need to wrap them in a string. Another difference to these handlers is that they het a `SyntheticEvent` as an argument, rather than a browser's native event. This is done to *normalize events across all browsers* so that events always look the same to our code.
+
+>`SyntheticEvent`s also have a `nativeEvent` attribute you can use if you need the real event for some reason. They also are re-used when your function returns, so gather all the data you need from them before you make any asynchronous calls.
+
+---
+
+## Element Factory
