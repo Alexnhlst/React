@@ -1,0 +1,53 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSX</title>
+    <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js">
+      // Now we will use JSX, which needs to be converted to JavaScript. For this we will use Babel.
+      // Babel is normally used to convert ES2015 to ES5, but it also can convert JSX to ES5. Babel's browser version uses tex/babel script tags.
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/babel">
+      // JSX is the idiomatic way of creating elements. It's basically XHTML with {} for dynamic content
+      let reactElement = (
+        <h1
+          className="abc"
+          style={{ textAlign: "center" }}
+          onClick={function () {
+            alert("click");
+          }}
+        >
+          Hello, world!
+        </h1>
+      );
+
+      // JSX shines with simple elements that make up the majority
+      let anotherElement = <p>A nice text paragraph</p>;
+
+      let myClass = "abc";
+
+      function myText() {
+        return "world";
+      }
+
+      // JavaScript insertion has the same syntax in attributes as in normal text or elements
+      reactElement = (
+        <div className={myClass}>
+          <h1>Hello {10 * 10}</h1>
+          <h2>{myText()}</h2>
+        </div>
+      );
+
+      // Everything else works as before
+      let renderTarget = document.getElementById("app");
+
+      ReactDOM.render(reactElement, renderTarget);
+    </script>
+  </body>
+</html>
