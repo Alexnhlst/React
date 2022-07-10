@@ -6,6 +6,7 @@
 2. [JSX](/../../tree/02-jsx/README.MD)
 3. [Components](/../../tree/03-components/README.MD)
 4. [Props](/../../tree/04-props/README.MD)
+5. [Nested and Class Components](/../../tree/05-nested-class-components/README.MD)
 
 
 [^1]: [Book](https://www.newline.co/react-from-zero/)
