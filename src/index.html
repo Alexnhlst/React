@@ -1,0 +1,61 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Refs</title>
+    <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/create-react-class@15.6.3/create-react-class.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/babel">
+      // Sometimes we need some state from an element for a component
+      // or it has to be directly modified somehow
+      // For this case, we can tell React to create references
+      let RefComponent = createReactClass({
+        // First we tell React to render an input with a ref callback, it will be
+        // called when the DOM of the input element is available
+        render: function () {
+          return (
+            <div>
+              <input ref={this.handleRef} />
+              <button onClick={this.handleClick}>Do Something</button>
+            </div>
+          );
+        },
+
+        // This callback is called when the input element was mounted into the DOM again
+        // with null, when it was unmounted again
+        // For elements the rendered DOM node will be stored
+        // For components the instance of the component will be stored.
+        handleRef(nameInput) {
+          // We save a reference to it for later use
+          this.nameInput = nameInput;
+        },
+
+        // This callback is called when the button is clicked
+        // and uses this.nameInput to read out the value of the input
+        handleClick: function () {
+          console.log(this.nameInput.value);
+        },
+      });
+
+      // Since references are local to their component
+      // they can be used as local IDs to get elements
+      // and don't override each other when another
+      // instance of the component is created
+      var reactElement = (
+        <div>
+          <RefComponent />
+          <RefComponent />
+          <RefComponent />
+        </div>
+      );
+
+      ReactDOM.render(reactElement, document.getElementById("app"));
+    </script>
+  </body>
+</html>
