@@ -8,8 +8,8 @@
 4. [Writing the First Test](#writing-the-first-test)
 5. [React Test Setup](#react-test-setup)
 6. [Testing React Components](#testing-react-components)
-  - [Testing the Structure of a Component](#testing-the-structure-of-a-component)
-  - [Testing Interaction with a Component](#testing-interaction-with-a-component)
+      - [Testing the Structure of a Component](#testing-the-structure-of-a-component)
+      - [Testing Interaction with a Component](#testing-interaction-with-a-component)
 
 ---
 
