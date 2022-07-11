@@ -336,7 +336,7 @@ let PomodoroApp = createReactClass({
     let timerState = this.state.timerState;
 
     if (timerState == this.PAUSE)
-      timerElement = (
+      return (
         <Timer
           key="pause"
           title="Pause"
@@ -348,7 +348,7 @@ let PomodoroApp = createReactClass({
       );
 
     if (timerState == this.WORK)
-      timerElement = (
+      return (
         <Timer
           key="work"
           title="Work"
@@ -393,22 +393,6 @@ We call the `handleIdle()` method via the `onStop` callback of the `<Timer>` com
 The `<Timer>` component also shows how unidirectional data flow gives you more control about events. To display the right minutes and seconds in the text **we explicitly set the state** in the `countDown()` method and then use it in the `render()` method. **There is no two-way-binding** involved.
 This approach allows us to see the whole journey our value takes, and we can apply checks or modify it at any position. For example, we check if the updated value is smaller than 1 and we calculate minutes and seconds from the value before rendering it.
 
-
-```mermaid
-flowchart
-    subgraph Timer Component
-        A((" "))-->B([getInitialState])
-        B-->C([render])
-        C-->D[" "]
-        D-->E([componentDidMount])
-        D-->F([onStop])
-        
-    end
-    subgraph Unidirectional Data Flow
-    direction LR
-    E-->G([countDown])
-    G-->H{secondsLeft <1}
-    H-- false -->I([render])
-    H-- true -->J([onFinish])
-    end
-```
+<div align="center">
+    <img src="./unidirectional-data-flow.png" alt="Unidirectional Data Flow"/>
+</div>

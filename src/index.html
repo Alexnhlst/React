@@ -94,7 +94,7 @@
           let timerState = this.state.timerState;
 
           if (timerState == this.PAUSE)
-            timerElement = (
+            return (
               <Timer
                 key="pause"
                 title="Pause"
@@ -106,7 +106,7 @@
             );
 
           if (timerState == this.WORK)
-            timerElement = (
+            return (
               <Timer
                 key="work"
                 title="Work"
