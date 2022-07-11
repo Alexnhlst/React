@@ -1,17 +1,3 @@
-# Refactoring Components :package:
-
-## Table of contents
-
-1. [Changing Implementations]()
-
----
-
-## Changing Implementations
-
-Refactoring is a big part of the software development process, and **React's component system helps us with this task.** Most of the time, one component maps to one file, and we can change their implmentation as we wish.
-Take this example which renders a table that shows a list of people in rooms:
-
-```javascript
 function ViewBefore(props) {
   return (
     <table>
@@ -35,7 +21,6 @@ function ViewBefore(props) {
   );
 }
 
-// The component has a simple props-interface
 ViewBefore.propTypes = {
   rooms: PropTypes.arrayOf(
     PropTypes.shape({
@@ -44,11 +29,7 @@ ViewBefore.propTypes = {
     })
   ).isRequired,
 };
-```
 
-This component expects an array of room-objects as defined in its `propTypes`. It renders this array with the help of a `<table>` element and its corresponding child-element. Because this component has defined its `propTypes` we can change its implmentation without any changes to the call site of the component.
-
-```javascript
 function ViewAfter(props) {
   return (
     <div>
@@ -73,7 +54,6 @@ function ViewAfter(props) {
   );
 }
 
-// We keep the props-interface the same
 ViewAfter.propTypes = {
   rooms: PropTypes.arrayOf(
     PropTypes.shape({
@@ -82,11 +62,7 @@ ViewAfter.propTypes = {
     })
   ).isRequired,
 };
-```
 
-This component uses the same `props` as the first version but renders them as a simple bar chart.
-
-```javascript
 let ViewDynamic = createReactClass({
   // We still keep the props-interface the same
   propTypes: {
@@ -129,6 +105,3 @@ let ViewDynamic = createReactClass({
     );
   },
 });
-```
-
-This component also has the same `props` interface defined in its `propTypes`, but it only renders a text description for one room at a time and switches to another room every second with an interval.
