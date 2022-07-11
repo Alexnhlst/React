@@ -10,6 +10,7 @@
 6. [Lifecycle Methods](/../../tree/06-lifecycle-methods/README.MD)
 7. [Example app](/../../tree/07-example-app/README.MD)
 8. [Refactoring Components](/../../tree/08-refactoring-components/README.MD)
+9. [Refs](/../../tree/09-refs/README.MD)
 
 
 [^1]: [Book](https://www.newline.co/react-from-zero/)
