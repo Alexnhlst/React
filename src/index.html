@@ -12,6 +12,135 @@
   <body>
     <div id="app"></div>
 
-    <script type="text/babel"></script>
+    <script type="text/babel">
+      let Idle = function (props) {
+        return (
+          <React.Fragment>
+            <button onClick={props.onStart}>Start timer</button>
+            <h2>No Timer Running.</h2>
+          </React.Fragment>
+        );
+      };
+
+      let Timer = createReactClass({
+        getInitialState: function () {
+          return { seconds: this.props.minutes * 60 };
+        },
+
+        interval: null,
+        componentDidMount: function () {
+          this.interval = setInterval(this.countDown, 1000);
+        },
+        componentWillUnmount: function () {
+          clearInterval(this.interval);
+        },
+
+        countDown: function () {
+          let onFinish = this.props.onFinish;
+          this.setState(function (prevState) {
+            let secondsLeft = prevState.seconds - 1;
+
+            if (secondsLeft < 1) return onFinish();
+
+            return { seconds: secondsLeft };
+          });
+        },
+        render: function () {
+          let seconds = this.state.seconds;
+          let minutes = Math.floor(seconds / 60);
+          seconds = seconds % 60;
+
+          return (
+            <React.Fragment>
+              <button onClick={this.props.onStop}>Stop timer</button>
+              <h2 style={{ color: this.props.color }}>
+                {this.props.title} for {minutes} minutes and {seconds} seconds.
+              </h2>
+            </React.Fragment>
+          );
+        },
+      });
+
+      let PomodoroApp = createReactClass({
+        IDLE: 0,
+        WORK: 1,
+        PAUSE: 2,
+
+        getInitialState: function () {
+          return {
+            count: 0,
+            timerState: this.IDLE,
+          };
+        },
+
+        handleWork: function () {
+          this.setState({ timerState: this.WORK });
+        },
+
+        handlePause: function () {
+          this.setState(function (prevState) {
+            return {
+              count: prevState.count + 1,
+              timerState: this.PAUSE,
+            };
+          });
+        },
+
+        handleIdle: function () {
+          this.setState({ timerState: this.IDLE });
+        },
+
+        getTimerElement: function () {
+          let timerState = this.state.timerState;
+
+          if (timerState == this.PAUSE)
+            timerElement = (
+              <Timer
+                key="pause"
+                title="Pause"
+                color="green"
+                minutes={5}
+                onFinish={this.handleWork}
+                onStop={this.handleIdle}
+              />
+            );
+
+          if (timerState == this.WORK)
+            timerElement = (
+              <Timer
+                key="work"
+                title="Work"
+                color="orange"
+                minutes={25}
+                onFinish={this.handlePause}
+                onStop={this.handleIdle}
+              />
+            );
+
+          return <Idle onStart={this.handleWork} />;
+        },
+
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+        },
+
+        render: function () {
+          let count = this.state.count;
+          return (
+            <div>
+              <h1>Pomodoro Timer</h1>
+              {this.getTimerElement()}
+              {!!count && <h2>You worked {count * 25} minutes today!</h2>}
+            </div>
+          );
+        },
+      });
+
+      let renderTarget = document.getElementById("app");
+
+      ReactDOM.render(<PomodoroApp />, renderTarget);
+    </script>
   </body>
 </html>
