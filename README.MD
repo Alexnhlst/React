@@ -7,10 +7,10 @@
     - [Using the library]()
     - [Complex example]()
 2. [Advanced Integration](#advanced-integration)
-    - [Including the library]()
-    - [Using the library]()
-    - [Refs and Lifecycle methods]()
-    - [Complex example]()
+    - [Including the library](#including-the-library-1)
+    - [Using the library](#using-the-library-1)
+    - [Refs and Lifecycle methods](#refs-and-lifecycle-methods)
+    - [Complex example](#complex-example-1)
 ---
 
 ## Simple Integration
