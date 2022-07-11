@@ -21,7 +21,7 @@
 
 ## Table of contents
 
-1. [First React App](/../../tree/13-first-react-app/README.MD)
+1. [Introduction](/../../tree/13-introduction/README.MD)
 
 [^1]: [Book](https://www.newline.co/react-from-zero/)
 [^2]: [Book](https://www.newline.co/fullstack-react)
