@@ -1,0 +1,87 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pomodoro Timer</title>
+  </head>
+  <script src="https://unpkg.com/react@16.4.0/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@16.4.0/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/create-react-class@15.6.3/create-react-class.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <body>
+    <div id="app"></div>
+
+    <script type="text/babel">
+      let Timer = createReactClass({
+        getInitialState: function () {
+          return { seconds: this.props.minutes * 60 };
+        },
+
+        interval: null,
+        componentDidMount: function () {
+          this.interval = setInterval(this.countDown, 1000);
+        },
+        componentWillUnmount: function () {
+          clearInterval(this.interval);
+        },
+
+        countDown: function () {
+          let onFinish = this.props.onFinish;
+          this.setState(function (prevState) {
+            let secondsLeft = prevState.seconds - 1;
+
+            if (secondsLeft < 1) return onFinish();
+
+            return { seconds: secondsLeft };
+          });
+        },
+        render: function () {
+          let seconds = this.state.seconds;
+          let minutes = Math.floor(seconds / 60);
+          seconds = seconds % 60;
+
+          return (
+            <React.Fragment>
+              <button onClick={this.props.onStop}>Stop timer</button>
+              <h2 style={{ color: this.props.color }}>
+                {this.props.title} for {minutes} minutes and {seconds} seconds.
+              </h2>
+            </React.Fragment>
+          );
+        },
+      });
+
+      let renderTarget = document.getElementById("app");
+
+      // Test
+      function handleStop() {
+        alert("Stop");
+      }
+      function handleFinish() {
+        alert("Finish");
+      }
+
+      const vdom = (
+        <div>
+          <Timer
+            color="orange"
+            minutes={25}
+            onStop={handleStop}
+            onFinish={handleFinish}
+            title="Work"
+          />
+          <Timer
+            color="green"
+            minutes={5}
+            onStop={handleStop}
+            onFinish={handleFinish}
+            title="Pause"
+          />
+        </div>
+      );
+
+      ReactDOM.render(vdom, renderTarget);
+    </script>
+  </body>
+</html>
