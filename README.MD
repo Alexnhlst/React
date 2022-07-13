@@ -4,7 +4,8 @@
 
 1. [Breaking the app into components](#breaking-the-app-into-components)
 2. [Steps for building React apps from scratch](#steps-for-building-react-apps-from-scratch)
-3. []()
+3. [Build a static version of the app](#build-a-static-version-of-the-app)
+4. [Determine what should be stateful]()
 
 ---
 
@@ -94,5 +95,165 @@ The server will be the initial source of state, and React will render itself acc
 > Will be covered in this project
 
 </details>
+
+---
+
+## Build a static version of the app
+
+```javascript
+class TimersDashboard extends React.Component {
+  render() {
+    return (
+      <div className="ui three column centered grid">
+        <div className="column">
+          <EditableTimerList />
+          <ToggleableTimerForm isOpen={true} />
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+This component renders its two child components nested under `div` tags. `TimersDashboard` passes down one prop to `ToggleableTimerForm`: `isOpen`. This is used by the child component to determine whether to render a "+" or `TimerForm`: when is "open' the form is being displayed.
+
+```javascript
+class EditableTimerList extends React.Component {
+  render() {
+    return (
+      <div id="timers">
+        <EditableTimer
+          title="Learn React"
+          project="Web Domination"
+          elapsed="8986300"
+          runningSince={null}
+          editFormOpen={false}
+        />
+        <EditableTimer
+          title="Learn extreme ironing"
+          project="World Domination"
+          elapsed="3890985"
+          runningSince={null}
+          editFormOpen={true}
+        />
+      </div>
+    );
+  }
+}
+```
+
+We're passing five props to each child component.
+
+```javascript
+class EditableTimer extends React.Component {
+  render() {
+    if (this.props.editFormOpen) {
+      return (
+        <TimerForm title={this.props.title} project={this.props.project} />
+      );
+    } else {
+      return (
+        <Timer
+          title={this.props.title}
+          project={this.props.project}
+          elapsed={this.props.elapsed}
+          runningSince={this.props.runningSince}
+        />
+      );
+    }
+  }
+}
+```
+
+`EditableTimer` returns either a `TimerForm` or a `Timer` based on the prop `editFormOpen`
+
+```javascript
+class TimerForm extends React.Component {
+  render() {
+    const submitText = this.props.title ? "Update" : "Create";
+    return (
+      <div className="ui centered card">
+        <div className="content">
+          <div className="ui form">
+            <div className="field">
+              <label>Title</label>
+              <input type="text" defaultValue={this.props.title} />
+            </div>
+            <div className="field">
+              <label>Project</label>
+              <input type="text" defaultValue={this.props.project} />
+            </div>
+            <div className="ui two bottom attached buttons">
+              <button className="ui basic blue button">{submitText}</button>
+              <button className="ui basic red button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+Before the `return` statement, we define a variable `submitText`. This variable uses the presence of `this.props.title` to determine what text the submit button should display.
+
+```javascript
+class ToggleableTimerForm extends React.Component {
+  render() {
+    if (this.props.isOpen) {
+      return <TimerForm />;
+    } else {
+      return (
+        <div className="ui basic content center aligned segment">
+          <button className="ui basic button icon">
+            <i className="plus icon" />
+          </button>
+        </div>
+      );
+    }
+  }
+}
+```
+
+As noted earlier, `TimerForm` does not receive any props from `ToggleableTimerForm`. As such, `itstitle` and `project` fields will be rendered empty.
+
+```javascript
+class Timer extends React.Component {
+  render() {
+    const elapsedString = helpers.renderElapsedString(this.props.elapsed);
+    return (
+      <div className="ui centered card">
+        <div className="content">
+          <div className="header">{this.props.title}</div>
+          <div className="meta">{this.props.project}</div>
+          <div className="center aligned description">
+            <h2>{elapsedString}</h2>
+          </div>
+          <div className="extra content">
+            <span className="right floated edit icon">
+              <i className="edit icon" />
+            </span>
+            <span className="right floated trash icon">
+              <i className="trash icon" />
+            </span>
+          </div>
+        </div>
+        <div className="ui bottom attached blue basic button">Start</div>
+      </div>
+    );
+  }
+}
+```
+
+`elapsed` in this app is in milliseconds. We use a function defined in `helpers.js`, `renderElapsedString()` to render the string in the format "HH:MM:SS"
+With all of the components defined, is time to render the app with `ReactDOM.render()`:
+
+```javascript
+ReactDOM.render(<TimersDashboard />, document.getElementById("content"));
+```
+
+---
+
+## Determine what should be stateful
 
 [^1]: [Single responsibility principle](https://en.wikipedia.org/wiki/Single_responsibility_principle)
