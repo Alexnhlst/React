@@ -29,6 +29,14 @@ flowchart TB
     D --> G
 ```
 
+- `TimersDashboard`: Parent container
+  - `EditableTimerList`: Displays a list of timer containers
+    - `EditableTimer`: Displays either a timer or a timer's edit form
+      - `Timer`: Displays a given timer
+      - `TimerForm`: Displays a given timer's edit form
+  - `ToggleableTimerForm`: Displays a form to create a new timer
+    - `TimerForm`: Displays a new timer's create form
+
 <details>
     <summary>More details</summary>
 
