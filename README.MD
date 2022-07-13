@@ -13,7 +13,8 @@
 9. [First interaction](#first-interaction)
 10. [Binding custom component methods](#binding-custom-component-methods)
 11. [State](#state)
-12. []()
+12. [Updating state and immutability](#updating-state-and-immutability)
+13. [Refactoring with the Babel plugin](#refactoring-with-the-babel-plugin)
 
 ---
 
@@ -392,6 +393,125 @@ class ProductList extends React.Component {
 The component will mount with an empty state `this.state.products` array. After mounting, we populate the state with data from `Seed`. The component will re-render and our products will be displayed. This happens at a speed that is imperceptible to the user.
 
 ---
+
+## Updating state and immutability
+
+Now that `ProductList` is managing the products in state, we're poised to make modifications to this data in response to user input. We want to increment the `votes` property on a product when the user votes for it. While a component can update its state, we should treat the `this.state` object as immutable. Let's say we have an array of numbers in state:
+
+```javascript
+this.setState({ nums: [1, 2, 3] });
+```
+
+If we want to update the state's `nums` array to include a 4, we might be temted to use `push()`:
+
+```javascript
+this.setState({ nums: (this.state.nums.push(4), this.state.nums) });
+```
+
+On the surface, it might appear as though we've treated `this.state` as immutable, but `push()` modifies the original array.
+
+```javascript
+console.log(this.state.nums); // [1, 2, 3]
+this.state.nums.push(4);
+console.log(this.state.nums); // [1, 2, 3, 4]
+```
+
+Although we invoke `this.setState()` immediately after we push 4 onto the array, we are still modifying `this.state` outside of `setState()` and this is bad practice. Part of the reason this is bad practice is because `setState()` is actually asynchronous. There is no guarantee when React will update the state and re-render our component.
+
+```javascript
+const nextNums = this.state.nums;
+nextNums.push(4);
+console.log(nextNums); // [1, 2, 3, 4]
+console.log(this.state.nums); // [1, 2, 3, 4]
+```
+
+Our new variable `nextNums` references the same array as `this.state.nums` in memory:
+
+```mermaid
+flowchart LR
+    subgraph Variables
+
+        A[nextNums]
+        B[this.state.nums]
+    end
+    subgraph Memory
+        C["[1,2,3]"]
+    end
+    A --> C
+    B --> C
+```
+
+Array's `concat()` creates a new array that contains the elements of the array it was called on followed by the elements passed in as arguments.
+Knowing that we want to treat the state as immutable, the following approach to handling up-voteswould be problematic:
+
+```javascript
+handleProductUpVote(productId) {
+  const products = this.state.products;
+  products.forEach((product) => {
+    if (product.id === productId) {
+      product.votes = product.votes + 1;
+    }
+  });
+  this.setState({
+    products: products,
+  });
+}
+```
+
+When we initialize `products` to `this.state.products`, `products` references the same array in memory as `this.state.products`
+
+```mermaid
+flowchart LR
+    subgraph Variables
+
+        A[products]
+        B[this.state.products]
+    end
+    subgraph Memory
+        C["[{ id: 1, ...},{ id: 2, ...},{ id: 3, ...},{ id: 4, ...}]"]
+    end
+    A --> C
+    B --> C
+```
+
+We should create a new array of products and, if we modify one of the product objects, we should modify a clone of the object as opposed to the original one.
+
+```javascript
+class ProductList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      products: [],
+    };
+
+    this.handleProductUpVote = this.handleProductUpVote.bind(this);
+  }
+
+  componentDidMount() {
+    this.setState({ products: Seed.products });
+  }
+
+  handleProductUpVote(productId) {
+    const nextProducts = this.state.products.map((product) => {
+      if (product.id === productId) {
+        return Object.assign({}, product, {
+          votes: product.votes + 1,
+        });
+      } else {
+        return product;
+      }
+    });
+    this.setState({
+      products: nextProducts,
+    });
+  }
+```
+
+We use `map()` to traverse the `products` array. It returns a new array. Next, we check if the current `product` matches `productId`. If it does, we create a new object, copying over the properties from the original product object. We then overwrite the `votes` property on our new product object. We set it to the incremented vote count. We do this using Object's `assign()` method. If the current `product` is not the one specified by `productId`, we return it unmodified. Finally, we use `setState()` to update the state. `map()` is creating a new array. So you might ask: Why can’t we modify the product object directly? While we're creating a new array, the variable `product` here still references the product object sitting on the original array in state. Therefore, if wwe make changes to it we'll be modifying the object in state. So we use `Object.assign()` to clone the original into a new object and then modify the `votes` property on that new object.
+
+---
+
+## Refactoring with the Babel plugin
 
 [^1]: [Semantic UI](https://semantic-ui.com/)
 [^2]: [this](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this)
