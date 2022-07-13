@@ -513,5 +513,57 @@ We use `map()` to traverse the `products` array. It returns a new array. Next, w
 
 ## Refactoring with the Babel plugin
 
+We've been using Babel in this project to give us the ability to write modern JavaScript that will run in a majority of browsers on the web.
+There's a few ways to integrate Babel into your project. We've been using `babel-standalone` which allows us to setup Babel quickly for use directly in the browser. By default it uses two presets. In Babel, a preset is a set of plugins used to support particulare language features. The two presets Babel has been using by default:
+
+- `es2015`: Adds support for ES2015 JavaScript[^3]
+- `react`: Adds support for JSX[^4]
+
+JavaScript is an ever-changing language. At its current pace, new syntax will be ratified for adoption on a yearly basis. Because JavaScript will continue to evolve, tools like Babel are here to stay. Developers want to take advantage of the latest language features. But it takes time for browsers to update their JavaScript engines. And it takes even more time for the majority of the public to upgrade their browsers to the latest versions. Babel closes this gap. It enables a codebase to evolve along with JavaScript without leaving older browsers behind.
+Beyond ES7, proposed JavaScript features can exist in various stages. A feature can be an experimental proposal, one that the community is still working out the details for ("stage 1"). Experimental proposals are at risk of being dropped or modified at any time. Or a feature might already be "ratified", which means it will be included in the next releas ("stage 4"). [^5]
+
+Property initializers are detailed in the proposal "ES Class Fields & Static Properties"[^6] Property initializers offer a compelling syntax that greatly simplify React class components. This feature works so well with React that Facebook team has written about using it internally.[^7]
+Property initializers are available in the Babel plugin `transform-class-properties`, which can be included in the `<script>` tag:
+
+```html
+<script
+  type="text/babel"
+  data-plugins="transform-class-properties"
+  src="./js/app.js"
+></script>
+```
+
+Inside `Product`, we defined the custom component method `handleUpVote` to which we had to perform a manual binding trick inside `constructor`
+With the `transform-class-properties` plugin, we can write `handleUpVote` as an arrow function. This will ensure `this` inside the function is bound to the component. Using this feature, we can drop `constructor()`
+
+```javascript
+class Product extends React.Component {
+  handleUpVote = () => {
+    this.props.onVote(this.props.id);
+  };
+  // ...
+```
+
+The same can be applied to the `<ProductList>` component. With property initializers, we no longer need to use `constructor` and rewrite the initial state like this:
+
+```javascript
+class ProductList extends React.Component {
+  state = {
+    products: [],
+  };
+
+  componentDidMount() {
+    this.setState({ products: Seed.products });
+  }
+
+  handleProductUpVote = (productId) => {
+    // ...
+```
+
 [^1]: [Semantic UI](https://semantic-ui.com/)
 [^2]: [this](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this)
+[^3]: [es2015](https://babeljs.io/docs/en/babel-preset-es2015/)
+[^4]: [react](https://babeljs.io/docs/en/babel-preset-react/)
+[^5]: [Babel plugins](https://babeljs.io/docs/en/plugins/)
+[^6]: [Class field proposal](https://github.com/tc39/proposal-class-fields)
+[^7]: [React on ES6+](https://old.babeljs.io/blog/2015/06/07/react-on-es6-plus)
