@@ -8,7 +8,7 @@
 4. [Babel](#babel)
 5. [ReactDOM.render()](#reactdomrender)
 6. [Product component](#product-component)
-7. []
+7. [Props](#props)
 
 ---
 
@@ -146,5 +146,62 @@ class Product extends React.Component {
 ```
 
 At the moment, the `Product` component is static with hard-coded values. To use this component in a meaningful way, we'll want to change it to be data-driven and therefore dynamic. Driving the `Product` component with data will allow us to dynamically render the component based upon the data that we give it.
+`seed.js` contains some example data for our products (it will "seed" or app's data). Each product has a unique `id` and a handful of properties.
+
+---
+
+## Props
+
+We want to modify our `Product` component so that it no longer uses static, hard-coded attributes. Instead, we want it to be able to accept data passed down from its parent, `ProductList`. Setting up our component structure in this way enables our `ProductList` component to dynamically render any number of `Product` components that each have their own unique attributes. Data flow will look like this:
+
+```mermaid
+flowchart TD
+    A[seed.js] --> B[Product list]
+    B --> C[Product]
+    B --> D[Product]
+    B --> E[Product]
+    B --> F[Product]
+```
+
+The way data flows from parent to child in React is through props. When a parent renders a child, it can send along props the child depens on.
+
+```javascript
+class ProductList extends React.Component {
+  render() {
+    const product = Seed.products[0];
+    return (
+      <div className="ui unstackable items">
+        <Product
+          id={product.id}
+          title={product.title}
+          description={product.description}
+          url={product.url}
+          votes={product.votes}
+          submitterAvatarUrl={product.submitterAvatarUrl}
+          productImageUrl={product.productImageUrl}
+        />
+      </div>
+    );
+  }
+}
+```
+
+The `product` variable is set to a JavaScript object that describes the first of our products. We pass the product's attributes along individually `Product` component using the syntax `[propName]=[propValue]`. In JSX, braces are a delimiter, signaling to JSX that what resides in-between the braces is a JavaScript expression. The other delimiter is using quotes for strings.
+
+> JSX attribute values must be delimited by either braces or quotes. If type is important and we want to pass in something like a Number or `null`, use braces
+
+In React, a component can access all its props through the object `this.props`. Inside of `Product`, the `this.props` object will look like this:
+
+```json
+{
+  "id": 1,
+  "title": "Yellow Pail",
+  "description": "On-demand sand castle construction expertise.",
+  "url": "#",
+  "votes": 41,
+  "submitterAvatarURL": "images/avatars/daniel.jpg",
+  "productImageUrl": "images/products/image-aqua.png"
+}
+```
 
 [^1]: [Semantic UI](https://semantic-ui.com/)
