@@ -204,4 +204,9 @@ In React, a component can access all its props through the object `this.props`. 
 }
 ```
 
+Interweaving props with HTML elements in this way is how we create dynamic, data-driven React component.
+
+> `this` is aspecial keyword in JavaScript. For the purpose of the course, `this` will be bound to the React component class. [^2]
+
 [^1]: [Semantic UI](https://semantic-ui.com/)
+[^2]: [this](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this)
