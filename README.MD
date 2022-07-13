@@ -8,6 +8,27 @@
 
 ## Breaking the app into components
 
+```mermaid
+flowchart TB
+    A["Timers-
+    Dashboard"]
+    B["Editable-
+    Timerlist"]
+    C["Toggleable-
+    TimerForm"]
+    D[EditableTimer]
+    E[TimerForm]
+    F[Timer]
+    G[TimerForm]
+
+    A --> B
+    A --> C
+    B --> D
+    C --> E
+    D --> F
+    D --> G
+```
+
 <details>
     <summary>More details</summary>
 
