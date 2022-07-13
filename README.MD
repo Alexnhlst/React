@@ -349,11 +349,49 @@ class Product extends React.Component {
 
 ## State
 
+Whereas props are immutable and owned by a component's parent, state is owned by the component. `this.state` is private to the component and it can be update with `this.setState()`. When the state or props of a component update, the component will re-render itself. Every React component is rendered as a function of its "props" and "state". This rendering is deterministic. This means that given a set of props and a set of state, a React component will always render a single way. Because we are mutating the data for our products (the number of votes), we should consider this data to be stateful. `ProducList` will be the owner of this state. It will then pass this state down as props to `Product`
+At the moment, `ProductList` is reading directly from `Seed` inside `render()` to grab the products. Let’s move this data into the component’s state. When adding `state` to a component, the first thing we do is define what the initial state should look like. Because `constructor()` is called when initializing our component, it’s the best place to define our initial state. In React components, state is an object.
+
+```javascript
+class ProductList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      products: [],
+    };
+  }
+  handleProductUpVote(productId) {
+    console.log(`${productId} was upvoted`);
+  }
+  render() {
+    const products = this.state.products.sort((a, b) => b.votes - a.votes);
+```
+
+We have initialized our state to an object with an empty `products` array.
+
+> Technically, because we don't supply `ProductList` any props, we don't need to propagate the `props` argument to `super()`. But it's a good habit to get into and helps avoid odd bugs in the future.
+
+With our state initialized, the `ProductList` component's `render` function uses state as opposed to reading from `Seed`.
+It's a good practice to initialize components with "empty" state as we've done here. After our component is initialized, we want to seed the state for `ProductList` with the data in `Seed`.
+React specifies a set of **lifecycle methods**. React invokes one lifecycle method, `componentDidMount()`, after our component has mounted to the page. For all state modifications after the initial state, React provides components the method `this.setState()`. Among other things, this method triggers the React component to re-render which is essential after the state changes.
+
+```javascript
+class ProductList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      products: [],
+    };
+  }
+
+  componentDidMount() {
+    this.setState({ products: Seed.products });
+  }
+```
+
+The component will mount with an empty state `this.state.products` array. After mounting, we populate the state with data from `Seed`. The component will re-render and our products will be displayed. This happens at a speed that is imperceptible to the user.
+
 ---
 
 [^1]: [Semantic UI](https://semantic-ui.com/)
 [^2]: [this](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this)
-
-```
-
-```
