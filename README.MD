@@ -6,7 +6,8 @@
 2. [Steps for building React apps from scratch](#steps-for-building-react-apps-from-scratch)
 3. [Build a static version of the app](#build-a-static-version-of-the-app)
 4. [Determine what should be stateful](#determine-what-should-be-stateful)
-5. [Determine in which component each piece of state should live]()
+5. [Determine in which component each piece of state should live](#determine-in-which-component-each-piece-of-state-should-live)
+6. [Hard-code initial states](#hard-code-initial-states)
 
 ---
 
@@ -293,39 +294,30 @@ So, outside of TimerForm, we’ve identified our stateful data:
 <details>
     <summary>More details</summary>
 
-- `TimersDashboard`
+> - `TimersDashboard`
+>   - In our static app, this declares two child components. It sets one prop, which is the `isOpen` boolean that is passed down to `ToggleableTimerForm`
 
-  - In our static app, this declares two child components. It sets one prop, which is the `isOpen` boolean that is passed down to `ToggleableTimerForm`
+> - `EditableTimerList`
+>   - This declares two child components, each which have props corresponding to a given timer's properties
 
-- `EditableTimerList`
+> - `EditableTimer`
+>   - This uses the prop `editFormOpen`
 
-  - This declares two child components, each which have props corresponding to a given timer's properties
+> - `Timer`
+>   - This uses all the props for a timer.
 
-- `EditableTimer`
+> - `TimerForm`
 
-  - This uses the prop `editFormOpen`
+> - This has two interactive input fields, one for `title` and one for `project`. When editing an existing timer, these fields are initialized with the timer's current values.
 
-- `Timer`
+> We can apply criteria to determine if data should be stateful: [^2]
 
-  - This uses all the props for a timer.
-
-- `TimerForm`
-
-  - This has two interactive input fields, one for `title` and one for `project`. When editing an existing timer, these fields are initialized with the timer's current values.
-
-We can apply criteria to determine if data should be stateful: [^2]
-
-1. Is it passed in from a parent via props? If so, it probably isn't state.
-
-   - A lot of the data used in our child components are already in their parents. This criterion helps us de-duplicate. For example, "timer properties" is listed multiple times. When we see the properties declared in `EditableTimerList`, we can consider it state. But when we see it elsewhere it's not
-
-2. Does it change over time? If not, it probably isn't state.
-
-   - This is a key criterion of stateful data: it changes
-
-3. Can you compute it based on any other state or props in your component? If so, it's not state.
-
-   - For simplicity, we want to strive to represent state with as few data points as possible.
+> 1.  Is it passed in from a parent via props? If so, it probably isn't state.
+>     - A lot of the data used in our child components are already in their parents. This criterion helps us de-duplicate. For example, "timer properties" is listed multiple times. When we see the properties declared in `EditableTimerList`, we can consider it state. But when we see it elsewhere it's not
+> 2.  Does it change over time? If not, it probably isn't state.
+>     - This is a key criterion of stateful data: it changes
+> 3.  Can you compute it based on any other state or props in your component? If so, it's not state.
+>     - For simplicity, we want to strive to represent state with as few data points as possible.
 
 </details>
 
@@ -333,5 +325,64 @@ We can apply criteria to determine if data should be stateful: [^2]
 
 ## Determine in which component each piece of state should live
 
+While the data we've determined to be stateful might live in certain components in our static app, this does not indicate the best position for it in our stateful app. Our next task is to determine the optimal place for each of our three discrete pieces of state to live.
+For each piece of state: [^2]
+
+- Identify every component that renders something based on that state.
+- Find a common owner component (a single component above all the components that need the state in the hierarchy)
+- Either the common owner or another component higher up in the hierarchy should own the state
+- If you can't find a component where it makes sense to own the state, create a new component simply for holding the state and add it somewhere in the hierarchy above the common owner component.
+
+<details>
+  <summary>More details</summary>
+
+> At first glance, we may be tempted to conclude that `TimersDashboard` does not appear to use this state. Instead, the first component that uses it is `EditableTimerList`. This matches the location of the declaration of this data in our static app. Because `ToggleableTimerForm` doesn’t appear to use the state either, we might deduce that `EditableTimerList` must then be the common owner. While this may be the case for displaying timers, modifying them, and deleting them, what about creates? `ToggleableTimerForm` does not need the state to render, but it can affect state. It needs to be able to insert a new timer. It will propagate the data for the new timer up to `TimersDashboard`. Therefore, `TimersDashboard` is truly the common owner. It will render `EditableTimerList` by passing down the timer state. It can the handle modifications from `EditableTimerList` and creates from `ToggleableTimerForm`, mutating the state. The new state will flow downward through `EditableTimerList`. In our static app, `EditableTimerList` specifies whether or not a `EditableTimer` should be rendered with its edit form open. Technically, though, this state could just live in each individual `EditableTimer`. No parent component in the hierarchy depends on this data. Storing the state in `EditableTimer` will be fine for our current needs. But there are a few requirements that might require us to “hoist” this state up higher in the component hierarchy in the future. For instance, what if we wanted to impose a restriction such that only one edit form could be open at a time? Then it would make sense for `EditableTimerList` to own the state, as it would need to inspect it to determine whether to allow a new “edit form open” event to succeed. If we wanted to allow only one form open at all, including the create form, then we’d hoist the state up to `TimersDashboard`. `TimersDashboard` doesn’t appear to care about whether `ToggleableTimerForm` is open or closed. It feels safe to reason that the state can just live inside `ToggleableTimerForm` itself. So, in summary, we’ll have three pieces of state each in three different components:
+
+> - Timer data will be owned and managed by `TimersDashboard`.
+> - Each `EditableTimer` will manage the state of its timer edit form.
+> - The `ToggleableTimerForm` will manage the state of its form visibility.
+
+</details>
+
+---
+
+## Hard-code initial states
+
+```javascript
+class TimersDashboard extends React.Component {
+  state = {
+    timers: [
+      {
+        title: "Practice squat",
+        project: "Gym Chores",
+        id: uuid.v4(),
+        elapsed: 5456099,
+        runningSince: Date.now(),
+      },
+      {
+        title: "Bake squash",
+        project: "Kitchen Chores",
+        id: uuid.v4(),
+        elapsed: 1273998,
+        runningSince: null,
+      },
+    ],
+  };
+  render() {
+    return (
+      <div className="ui three column centered grid">
+        <div className="column">
+          <EditableTimerList timers={this.state.timers} />
+          <ToggleableTimerForm isOpen={true} />
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+The Babel plugin `transform-class-properties` gives us the property initializers syntax. In `render` we pass down `state.timers` to `EditableTimerList`. For the `id` property, we're using a library called `uuid` loaded in `index.html`. `uuid.v4()` randomly generates a Universally Unique IDentifier for each item[^3]
+
 [^1]: [Single responsibility principle](https://en.wikipedia.org/wiki/Single_responsibility_principle)
 [^2]: [Thinking in React](https://reactjs.org/docs/thinking-in-react.html)
+[^3]: [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier)
