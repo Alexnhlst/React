@@ -8,6 +8,7 @@
 4. [Determine what should be stateful](#determine-what-should-be-stateful)
 5. [Determine in which component each piece of state should live](#determine-in-which-component-each-piece-of-state-should-live)
 6. [Hard-code initial states](#hard-code-initial-states)
+7. [Add inverse data flow](#add-inverse-data-flow)
 
 ---
 
@@ -382,6 +383,156 @@ class TimersDashboard extends React.Component {
 ```
 
 The Babel plugin `transform-class-properties` gives us the property initializers syntax. In `render` we pass down `state.timers` to `EditableTimerList`. For the `id` property, we're using a library called `uuid` loaded in `index.html`. `uuid.v4()` randomly generates a Universally Unique IDentifier for each item[^3]
+
+```javascript
+class EditableTimerList extends React.Component {
+  render() {
+    const timers = this.props.timers.map((timer) => (
+      <EditableTimer
+        key={timer.id}
+        id={timer.id}
+        title={timer.title}
+        project={timer.project}
+        elapsed={timer.elapsed}
+        runningSince={timer.runningSince}
+      />
+    ));
+    return <div id="timers">{timers}</div>;
+  }
+}
+```
+
+We're using `map` on the `timers` array to build a list of `EditableTimer` components.
+
+<details>
+  <section>Props vs. state</section>
+
+> Props are state's immutable accomplice. What existed as mutable state in `TimerDashboard` is passed down as immutable props to `EditableTimerList`. You can see how props act as state's one-way data pipeline. State is managed in some select parent components and then that data flows down through children as props. If state is updated, the component managing that state re-renders by calling `render()`. This, in turn, causes any of its children to re-render as well.
+
+</details>
+
+```javascript
+class EditableTimer extends React.Component {
+  state = {
+    editFormOpen: false,
+  };
+  render() {
+    if (this.state.editFormOpen) {
+      return (
+        <TimerForm
+          id={this.props.id}
+          title={this.props.title}
+          project={this.props.project}
+        />
+      );
+    } else {
+      return (
+        <Timer
+          id={this.props.id}
+          title={this.props.title}
+          project={this.props.project}
+          elapsed={this.props.elapsed}
+          runningSince={this.props.runningSince}
+        />
+      );
+    }
+  }
+}
+```
+
+We set the initial value of `editFormOpen` to `false`, which means that the form starts off as closed.
+
+```javascript
+class ToggleableTimerForm extends React.Component {
+  state = {
+    isOpen: false,
+  };
+  handleFormOpen = () => {
+    this.setState({ isOpen: true });
+  };
+  render() {
+    if (this.state.isOpen) {
+      return <TimerForm />;
+    } else {
+      return (
+        <div className="ui basic content center aligned segment">
+          <button
+            className="ui basic button icon"
+            onClick={this.handleFormOpen}
+          >
+            <i className="plus icon" />
+          </button>
+        </div>
+      );
+    }
+  }
+}
+```
+
+In React, forms are stateful. `TimerForm` includes two input fields. These input fields are modifiable by the user. In React, all modifications that are made to a component should be handled by React and kept in state. By having React manage all modifications, we guarantee that the visual component that the user is interacting with on the DOM matches the state of the React component behind the scenes.
+
+```javascript
+class TimerForm extends React.Component {
+  state = {
+    title: this.props.title || "",
+    project: this.props.project || "",
+  };
+  handleTitleChange = (e) => {
+    this.setState({ title: e.target.value });
+  };
+  handleProjectChange = (e) => {
+    this.setState({ project: e.target.value });
+  };
+  render() {
+    const submitText = this.props.title ? "Update" : "Create";
+    return (
+      <div className="ui centered card">
+        <div className="content">
+          <div className="ui form">
+            <div className="field">
+              <label>Title</label>
+              <input
+                type="text"
+                value={this.state.title}
+                onChange={this.handleTitleChange}
+              />
+            </div>
+            <div className="field">
+              <label>Project</label>
+              <input
+                type="text"
+                value={this.state.project}
+                onChange={this.handleProjectChange}
+              />
+            </div>
+            <div className="ui two bottom attached buttons">
+              <button className="ui basic blue button">{submitText}</button>
+              <button className="ui basic red button">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+To make these input fields stateful, let's first initialize `state` at the top of the component. Our state has two properties, we set the initial state to the values passed down via props. If `TimerForm` is creating a new timer as opposed to editing an existing one, those props would be `undefined`, in that case we initialize both to a blank string.
+
+> The value of an input field can't technically ever be `undefined`. If it's empty, its value in JavaScript is a blank string. In fact, if you initialize the value of an input field to `undefined`, React will complain.
+
+React's `onChange` attribute for input elements will invoke the function specified whenever the input field is changed, to allow the user to modify the state.
+Here's an example of the lifecycle of `TimerForm`:
+
+1. On the page is a timer with the title "Mow the lawn."
+2. The user toggles open the edit form for this timer, mounting `TimerForm` to the page
+3. `TimerForm` initializes the state property `title` to the string: "Mow the lawn."
+4. The user modifies the input field, changing it to the value "Cut the grass"
+5. With every keystroke, React invokes `handleTitleChange`. The internal state of `title` is kept in-sync with what the user sees on the page.
+
+---
+
+## Add inverse data flow
 
 [^1]: [Single responsibility principle](https://en.wikipedia.org/wiki/Single_responsibility_principle)
 [^2]: [Thinking in React](https://reactjs.org/docs/thinking-in-react.html)
