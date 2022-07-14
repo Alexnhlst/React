@@ -12,7 +12,7 @@
    - [Updating timers](#updating-timers)
    - [Adding timing functionality](#adding-timing-functionality)
 8. [Review](#review)
-9. [Components and servers]()
+9. [Components and servers](/../../tree/15-components-and-servers/README.MD)
 
 ---
 
