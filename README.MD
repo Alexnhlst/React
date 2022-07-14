@@ -5,6 +5,7 @@
 1. [Introduction](#introduction)
 2. [The Server API](#the-server-api)
 3. [Loading state from the server](#loading-state-from-the-server)
+4. [Fetch API](#fetch-api)
 
 ---
 
@@ -196,5 +197,31 @@ class TimersDashboard extends React.Component {
 > We also do one other interesting thing in `componentDidMount`. We use `setInterval()` to ensure`loadTimersFromServer()` is called every 5 seconds. While we will be doing our best to mirror state changes between client and server, this hard-refresh of state from the server will ensure our client will always be correct should it shift from the server
 
 </details>
+
+Any action will be wiped out within five seconds. Every five seconds, state is restored from the server. We’re loading the initial state from the server. We have an interval function in place to ensure the client app’s state does not drift from the server’s in a multi-instance scenario. We’ll need to inform our server of the rest of our state changes: creates, updates (including starts and stops), and deletes.
+
+---
+
+## Fetch API
+
+Until Fetch, JavaScript developers had two options for making web requests: Use `XMLHttpRequest`, which is supported natively in all browsers, or import a library that provides a wrapper around it (like jQuery's `ajax()`). It provides a better interace than `XMLHttpRequest`.
+
+```javascript
+function getTimers(success) {
+  return fetch("/api/timers", {
+    headers: {
+      Accept: "application/json",
+    },
+  })
+    .then(checkStatus)
+    .then(parseJSON)
+    .then(success);
+}
+```
+
+`fetch()` accepts two arguments:
+
+- The path to the resource we want to fetch
+- An object of request parameters
 
 [^1]: [jq](https://stedolan.github.io/jq/)
