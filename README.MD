@@ -9,6 +9,8 @@
 5. [Determine in which component each piece of state should live](#determine-in-which-component-each-piece-of-state-should-live)
 6. [Hard-code initial states](#hard-code-initial-states)
 7. [Add inverse data flow](#add-inverse-data-flow)
+   - [Updating timers](#updating-timers)
+   - [Adding timing functionality](#adding-timing-functionality)
 
 ---
 
@@ -405,7 +407,7 @@ class EditableTimerList extends React.Component {
 We're using `map` on the `timers` array to build a list of `EditableTimer` components.
 
 <details>
-  <section>Props vs. state</section>
+  <summary>Props vs. state</summary>
 
 > Props are state's immutable accomplice. What existed as mutable state in `TimerDashboard` is passed down as immutable props to `EditableTimerList`. You can see how props act as state's one-way data pipeline. State is managed in some select parent components and then that data flows down through children as props. If state is updated, the component managing that state re-renders by calling `render()`. This, in turn, causes any of its children to re-render as well.
 
@@ -533,6 +535,297 @@ Here's an example of the lifecycle of `TimerForm`:
 ---
 
 ## Add inverse data flow
+
+- `TimerForm` needs to propagate create and update events (create while under `ToggleableTimerForm` and update while under `EditableTimer`). Both events will eventually reach `TimersDashboard`
+- `Timer` has a fair amount of behavior. It needs to handle delete and edit clicks, as well as the start and stop timer logic.
+
+```javascript
+class TimerForm extends React.Component {
+  state = {
+    title: this.props.title || "",
+    project: this.props.project || "",
+  };
+  handleTitleChange = (e) => {
+    this.setState({ title: e.target.value });
+  };
+  handleProjectChange = (e) => {
+    this.setState({ project: e.target.value });
+  };
+  handleSubmit = () => {
+    this.props.onFormSubmit({
+      id: this.props.id,
+      title: this.state.title,
+      project: this.state.project,
+    });
+  };
+  render() {
+    const submitText = this.props.id ? "Update" : "Create";
+    return (
+      <div className="ui centered card">
+        <div className="content">
+          <div className="ui form">
+            <div className="field">
+              <label>Title</label>
+              <input
+                type="text"
+                value={this.state.title}
+                onChange={this.handleTitleChange}
+              />
+            </div>
+            <div className="field">
+              <label>Project</label>
+              <input
+                type="text"
+                value={this.state.project}
+                onChange={this.handleProjectChange}
+              />
+            </div>
+            <div className="ui two bottom attached buttons">
+              <button
+                className="ui basic blue button"
+                onClick={this.handleSubmit}
+              >
+                {submitText}
+              </button>
+              <button
+                className="ui basic red button"
+                onClick={this.props.onFormClose}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+`TimerForm` needs two event handlers:
+
+- When the form is submitted (creating or updating a timer)
+- When the cancel button is clicked (closing the form)
+
+`TimerForm` will receive two functions as props to handle each event. The parent component that uses `TimerForm` is responsible for providing these functions:
+
+- `props.onFormSubmit()`: called when the form is submitted
+- `props.onFormClose()`: called when the cancel button is clicked
+
+```javascript
+class ToggleableTimerForm extends React.Component {
+  state = {
+    isOpen: false,
+  };
+  handleFormOpen = () => {
+    this.setState({ isOpen: true });
+  };
+  handleFormClose = () => {
+    this.setState({ isOpen: false });
+  };
+  handleFormSubmit = (timer) => {
+    this.props.onFormSubmit(timer);
+    this.setState({ isOpen: false });
+  };
+  render() {
+    if (this.state.isOpen) {
+      return (
+        <TimerForm
+          onFormSubmit={this.handleFormSubmit}
+          onFormClose={this.handleFormClose}
+        />
+      );
+    }
+    // ...
+```
+
+`ToggleableTimerForm` is not the manager of timer state. `TimerForm` has an event it's emitting, in this case the submission of a new timer. `ToggleableTimerForm` is just a proxy of this message. So, when the form is submitted, it calls its own prop-function `props.onFormSubmit()`. `handleFormSubmit()` accepts the argument `timer`. In `TimerForm` this argument is an object containing the desired timer properties. After invoking `onFormSubmit()`, `handleFormSubmit()` calls `setState()` to close its form.
+
+```javascript
+class TimersDashboard extends React.Component {
+  state = {
+    timers: [
+      {
+        title: "Practice squat",
+        project: "Gym Chores",
+        id: uuid.v4(),
+        elapsed: 5456099,
+        runningSince: Date.now(),
+      },
+      {
+        title: "Bake squash",
+        project: "Kitchen Chores",
+        id: uuid.v4(),
+        elapsed: 1273998,
+        runningSince: null,
+      },
+    ],
+  };
+  handleCreateFormSubmit = (timer) => {
+    this.createTimer(timer);
+  };
+  createTimer = (timer) => {
+    const t = helpers.newTimer(timer);
+    this.setState({
+      timers: this.state.timers.concat(t),
+    });
+  };
+  render() {
+    return (
+      <div className="ui three column centered grid">
+        <div className="column">
+          <EditableTimerList timers={this.state.timers} />
+          <ToggleableTimerForm onFormSubmit={this.handleCreateFormSubmit} />
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+We create the timer object with `helpers.newTimer()`.We pass in the object that originated down in `TimerForm`. This object has `title` and `project` properties. `helpers.newTimer()` returns an object with those `title` and `project` properties as well as a generated `id`
+
+> You might wonder: why separate `handleCreateFormSubmit()` and `createTimer()`? While not strictly required, the idea here is that we have one function for handling the event (`handleCreateFormSubmit()`) and another for performing the operation of creating a timer (`createTimer()`). This separation follows from the Single Responsibility Principle and enables us to call `createTimer()` from elsewhere if needed.
+
+### Updating timers
+
+To display an edit form, the user clicks on the edit icon on a `Timer`. This should propagate an event up to `EditableTimer` and tell it to flip its child component, opening the form.
+
+```javascript
+class EditableTimer extends React.Component {
+  state = {
+    editFormOpen: false,
+  };
+
+  handleEditClick = () => {
+    this.openForm();
+  };
+
+  handleFormClose = () => {
+    this.closeForm();
+  };
+
+  handleSubmit = (timer) => {
+    this.props.onFormSubmit(timer);
+    this.closeForm();
+  };
+
+  closeForm = () => {
+    this.setState({ editFormOpen: false });
+  };
+
+  openForm = () => {
+    this.setState({ editFormOpen: true });
+  };
+
+  render() {
+    if (this.state.editFormOpen) {
+      return (
+        <TimerForm
+          id={this.props.id}
+          title={this.props.title}
+          project={this.props.project}
+          onFormSubmit={this.handleSubmit}
+          onFormClose={this.handleFormClose}
+        />
+      );
+    } else {
+      return (
+        <Timer
+          id={this.props.id}
+          title={this.props.title}
+          project={this.props.project}
+          elapsed={this.props.elapsed}
+          runningSince={this.props.runningSince}
+          onEditClick={this.handleEditClick}
+        />
+      );
+    }
+  }
+}
+
+// <Timer>
+<div className="extra content">
+            <span
+              className="right floated edit icon"
+              onClick={this.props.onEditClick}
+            >
+// ...
+```
+
+For `TimerForm`, we want to handle the form being closed or submitted. For `Timer`, we want to handle the edit icon being pressed. We pass these event handlers down as props. `EditableTimer` handles the same events emitted from `TimerForm` in a very similar manner as `ToggleableTimerForm`. Both `EditableTimer` and `ToggleableTimerForm` are just intermediaries between `TimerForm` and `TimersDashboard`. `TimersDashboard` is the one that defines the submit function handlers and assigns them to a given component tree. Like `ToggleableTimerForm`, `EditableTimer` doesn’t do anything with the incoming timer. In `handleSubmit()`, it just blindly passes this object along to its prop-function `onFormSubmit()`. It then closes the form with `closeForm()`. We pass along a new prop to `Timer`, `onEditClick`. The behavior for this function is defined in `handleEditClick`, which modifies the state for `EditableTimer`, opening the form.
+Moving up a level, we make a one-line addition to `EditableTimerList` to send the submit functionfrom `TimersDashboard` to each `EditableTimer`
+
+```javascript
+class TimersDashboard extends React.Component {
+  state = {
+    timers: [
+      {
+        title: "Practice squat",
+        project: "Gym Chores",
+        id: uuid.v4(),
+        elapsed: 5456099,
+        runningSince: Date.now(),
+      },
+      {
+        title: "Bake squash",
+        project: "Kitchen Chores",
+        id: uuid.v4(),
+        elapsed: 1273998,
+        runningSince: null,
+      },
+    ],
+  };
+
+  handleCreateFormSubmit = (timer) => {
+    this.createTimer(timer);
+  };
+
+  handleEditFormSubmit = (attrs) => {
+    this.updateTimer(attrs);
+  };
+
+  createTimer = (timer) => {
+    const t = helpers.newTimer(timer);
+    this.setState({
+      timers: this.state.timers.concat(t),
+    });
+  };
+
+  updateTimer = (attrs) => {
+    this.setState({
+      timers: this.state.timers.map((timer) => {
+        if (timer.id === attrs.id) {
+          return Object.assign({}, timer, {
+            title: attrs.title,
+            project: attrs.project,
+          });
+        } else {
+          return timer;
+        }
+      }),
+    });
+  };
+
+  render() {
+    return (
+      <div className="ui three column centered grid">
+        <div className="column">
+          <EditableTimerList
+            timers={this.state.timers}
+            onFormSubmit={this.handleEditFormSubmit}
+          />
+          <ToggleableTimerForm onFormSubmit={this.handleCreateFormSubmit} />
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+Note that we can call `map()` on `this.state.timers` from within the JavaScript object we’re passing to `setState()`. This is an often used pattern. The call is evaluated and then the property timers is set to the result. Inside of the `map()` function we check if the timer matches the one being updated. If not, we just return the timer. Otherwise, we use `Object.assign()` to return a new object with the timer’s updated attributes. Remember, it’s important here that we treat state as immutable. By creating a new timers object and then using `Object.assign()` to populate it, we’re not modifying any of the objects sitting in state. As we did with `ToggleableTimerForm` and `handleCreateFormSubmit`, we pass down `handleEditFormSubmit` as the prop `onFormSubmit`. `TimerForm` calls this prop, oblivious to the fact that this function is entirely different when it is rendered underneath `EditableTimer` as opposed to `ToggleableTimerForm`. The same behavior can be implemented for the delete functionality
+
+### Adding timing functionality
 
 [^1]: [Single responsibility principle](https://en.wikipedia.org/wiki/Single_responsibility_principle)
 [^2]: [Thinking in React](https://reactjs.org/docs/thinking-in-react.html)
