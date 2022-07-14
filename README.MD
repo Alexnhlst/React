@@ -11,6 +11,8 @@
 7. [Add inverse data flow](#add-inverse-data-flow)
    - [Updating timers](#updating-timers)
    - [Adding timing functionality](#adding-timing-functionality)
+8. [Review](#review)
+9. [Components and servers]()
 
 ---
 
@@ -826,6 +828,283 @@ class TimersDashboard extends React.Component {
 Note that we can call `map()` on `this.state.timers` from within the JavaScript object we’re passing to `setState()`. This is an often used pattern. The call is evaluated and then the property timers is set to the result. Inside of the `map()` function we check if the timer matches the one being updated. If not, we just return the timer. Otherwise, we use `Object.assign()` to return a new object with the timer’s updated attributes. Remember, it’s important here that we treat state as immutable. By creating a new timers object and then using `Object.assign()` to populate it, we’re not modifying any of the objects sitting in state. As we did with `ToggleableTimerForm` and `handleCreateFormSubmit`, we pass down `handleEditFormSubmit` as the prop `onFormSubmit`. `TimerForm` calls this prop, oblivious to the fact that this function is entirely different when it is rendered underneath `EditableTimer` as opposed to `ToggleableTimerForm`. The same behavior can be implemented for the delete functionality
 
 ### Adding timing functionality
+
+CRUD capability is now in place for our timers. The next challenge is making these timers functional. There are several different ways we can implement a timer system. The simplest approach would be to have a function update the `elpased` property on each timer every second. This is severely limited, if the app is closed the timer should continue running. A timer is initialized with `elapsed` equal to 0, when a user clicks start, we do not increment it. Instead, we just set `runningSince` to the start time. We can then use the difference between the start time and the current time to render the time for the user. When the user clicks stop, the difference between the start time and the current time is added to `elapsed`. `runningSince` is set to `null`. Therefore, at any given time, we can derive how long the timer has been running by taking `Date.now() - runningSince` and adding it to the total accumulated time. For the app to truly feel like a running timer, we want React to constantly perform this operation and re-render the timers. But `elapsed` and `runningSince` will not be changing while the timer is running. We can use React's `forceUpdate()` method. This forces a React component to re-render.
+
+```javascript
+class Timer extends React.Component {
+  componentDidMount() {
+    this.forceUpdateInterval = setInterval(() => this.forceUpdate(), 50);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.forceUpdateInterval);
+  }
+
+  handleTrashClick = () => {
+    this.props.onTrashClick(this.props.id);
+  };
+
+  render() {
+    const elapsedString = helpers.renderElapsedString(
+      this.props.elapsed,
+      this.props.runningSince
+    );
+```
+
+`helpers.renderElapsedString()` accepts an optional second argument, `runningSince`. It will add the delta of `Date.now() - runningSince` to `elapsed` and use the function `millisecondsToHuman()` to return a string formatted as HH:MM:SS
+In `componentDidMount()`, we use the JavaScript function `setInterval()`. This will invoke the function `forceUpdate()` once every 50ms, causing the component to re-render. We set the return of `setInterval()` to `this.forceUpdateInterval`
+In `componentWillUnmount()`, we use `clearInterval()` to stop the interval `this.forceUpdateInterval`. Is called before a component is removed from the app. This will happen if a timer is deleted. We want to ensure we do not continue calling `forceUpdate()` after the timer has been removed from the page, React will throw errors.
+
+> `setInterval()` accepts two arguments. The first is the function you would like to call repeatedly. The second is the interval on which to call that function (in milliseconds). It returns a unique interval ID, you can pass it to `clearInterval()` at any time to halt the interval. You might ask: Wouldn’t it be more efficient if we did not continuously call `forceUpdate()` on timers that are not running? Indeed, we would save a few cycles. But it would not be worth the added code complexity. React will call `render()` which performs some inexpensive operations in JavaScript. It will then compare this result to the previous call to `render()` and see that nothing has changed. It stops there — it won’t attempt any DOM manipulation.
+
+```javascript
+class Timer extends React.Component {
+  componentDidMount() {
+    this.forceUpdateInterval = setInterval(() => this.forceUpdate(), 50);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.forceUpdateInterval);
+  }
+
+  handleStartClick = () => {
+    this.props.onStartClick(this.props.id);
+  };
+
+  handleStopClick = () => {
+    this.props.onStopClick(this.props.id);
+  };
+
+  handleTrashClick = () => {
+    this.props.onTrashClick(this.props.id);
+  };
+
+  render() {
+    const elapsedString = helpers.renderElapsedString(
+      this.props.elapsed,
+      this.props.runningSince
+    );
+    return (
+      <div className="ui centered card">
+        <div className="content">
+          <div className="header">{this.props.title}</div>
+          <div className="meta">{this.props.project}</div>
+          <div className="center aligned description">
+            <h2>{elapsedString}</h2>
+          </div>
+          <div className="extra content">
+            <span
+              className="right floated edit icon"
+              onClick={this.props.onEditClick}
+            >
+              <i className="edit icon" />
+            </span>
+            <span
+              className="right floated trash icon"
+              onClick={this.handleTrashClick}
+            >
+              <i className="trash icon" />
+            </span>
+          </div>
+        </div>
+        <TimerActionButton
+          timerIsRunning={!!this.props.runningSince}
+          onStartClick={this.handleStartClick}
+          onStopClick={this.handleStopClick}
+        />
+      </div>
+    );
+  }
+}
+```
+
+In the `Timer` component we added event handlers to use in a new component: `TimerActionButton`. These events will eventually need to make it all the way up to `TimersDashboard`
+
+```javascript
+class TimerActionButton extends React.Component {
+  render() {
+    if (this.props.timerIsRunning) {
+      return (
+        <div
+          className="ui bottom attached red basic button"
+          onClick={this.props.onStopClick}
+        >
+          Stop
+        </div>
+      );
+    } else {
+      return (
+        <div
+          className="ui bottom attached green basic button"
+          onClick={this.props.onStartClick}
+        >
+          Start
+        </div>
+      );
+    }
+  }
+}
+```
+
+`onStartClick` and `onStopClick` are passed as props to `EditableTimer` and `EditableTimerList`. These functions are then defined in `TimersDashboard`
+
+```javascript
+class TimersDashboard extends React.Component {
+  state = {
+    timers: [
+      {
+        title: "Practice squat",
+        project: "Gym Chores",
+        id: uuid.v4(),
+        elapsed: 5456099,
+        runningSince: Date.now(),
+      },
+      {
+        title: "Bake squash",
+        project: "Kitchen Chores",
+        id: uuid.v4(),
+        elapsed: 1273998,
+        runningSince: null,
+      },
+    ],
+  };
+
+  handleCreateFormSubmit = (timer) => {
+    this.createTimer(timer);
+  };
+
+  handleEditFormSubmit = (attrs) => {
+    this.updateTimer(attrs);
+  };
+
+  handleTrashClick = (timerId) => {
+    this.deleteTimer(timerId);
+  };
+
+  handleStartClick = (timerId) => {
+    this.startTimer(timerId);
+  };
+
+  handleStopClick = (timerId) => {
+    this.stopTimer(timerId);
+  };
+
+  createTimer = (timer) => {
+    const t = helpers.newTimer(timer);
+    this.setState({
+      timers: this.state.timers.concat(t),
+    });
+  };
+
+  updateTimer = (attrs) => {
+    this.setState({
+      timers: this.state.timers.map((timer) => {
+        if (timer.id === attrs.id) {
+          return Object.assign({}, timer, {
+            title: attrs.title,
+            project: attrs.project,
+          });
+        } else {
+          return timer;
+        }
+      }),
+    });
+  };
+
+  deleteTimer = (timerId) => {
+    this.setState({
+      timers: this.state.timers.filter((t) => t.id !== timerId),
+    });
+  };
+
+  startTimer = (timerId) => {
+    const now = Date.now();
+
+    this.setState({
+      timers: this.state.timers.map((timer) => {
+        if (timer.id === timerId) {
+          return Object.assign({}, timer, {
+            runningSince: now,
+          });
+        } else {
+          return timer;
+        }
+      }),
+    });
+  };
+
+  stopTimer = (timerId) => {
+    const now = Date.now();
+
+    this.setState({
+      timers: this.state.timers.map((timer) => {
+        if (timer.id === timerId) {
+          const lastElapsed = now - timer.runningSince;
+          return Object.assign({}, timer, {
+            elapsed: timer.elapsed + lastElapsed,
+            runningSince: null,
+          });
+        } else {
+          return timer;
+        }
+      }),
+    });
+  };
+
+  render() {
+    return (
+      <div className="ui three column centered grid">
+        <div className="column">
+          <EditableTimerList
+            timers={this.state.timers}
+            onFormSubmit={this.handleEditFormSubmit}
+            onTrashClick={this.handleTrashClick}
+            onStartClick={this.handleStartClick}
+            onStopClick={this.handleStopClick}
+          />
+          <ToggleableTimerForm onFormSubmit={this.handleCreateFormSubmit} />
+        </div>
+      </div>
+    );
+  }
+}
+```
+
+---
+
+## Review
+
+We applied a methodology for building React apps.
+
+<details>
+  <summary>More info</summary>
+
+> 1.  Break the app into components
+>
+> - We mapped out the component structure of our app by examining the app’s working UI. We then applied the single-responsibility principle to break components down so that each had minimal viable functionality.
+
+> 2. Build a static version of the app
+>
+> - Our bottom-level (user-visible) components rendered HTML based on static props, passed down from parents.
+
+> 3.  Determine what should be stateful
+>
+> - We used a series of questions to deduce what data should be stateful. This data was represented in our static app as props.
+
+> 4.  Determine in which component each piece of state should live
+>
+> - We used another series of questions to determine which component should own each piece of state. `TimersDashboard` owned timer state data and `ToggleableTimerForm` and `EditableTimer` both held state pertaining to whether or not to render a `TimerForm`.
+
+> 5.  Hard-code initial states
+>
+> - We then initialized state-owners’ `state` properties with hard-coded values.
+
+> 6. Add inverse data flow
+>
+> - We added interactivity by decorating buttons with `onClick` handlers. These called functions that were passed in as props down the hierarchy from whichever component owned the relevant state being manipulated.
+
+</details>
 
 [^1]: [Single responsibility principle](https://en.wikipedia.org/wiki/Single_responsibility_principle)
 [^2]: [Thinking in React](https://reactjs.org/docs/thinking-in-react.html)
