@@ -6,6 +6,8 @@
 2. [The Server API](#the-server-api)
 3. [Loading state from the server](#loading-state-from-the-server)
 4. [Fetch API](#fetch-api)
+5. [Sending starts and stops to the server](#sending-starts-and-stops-to-the-server)
+6. [Sending creates, updates, and deletes to the server](#sending-creates-updates-and-deletes-to-the-server)
 
 ---
 
@@ -223,5 +225,144 @@ function getTimers(success) {
 
 - The path to the resource we want to fetch
 - An object of request parameters
+
+By default, Fetch makes a GET request. We're also passing along the `headers` parameter. We're telling the server we'll accept only a JSON response.
+The function passeed to each `.then()` statements are:
+
+- `checkStatus()`: defined inside of `client.js`, it checks if the server returned an error. If so, logs the error to the console
+- `parseJSON()`: defined inside of `client.js`, it takes the response object emitted by `fetch()` and returns a JavaScript object
+- `success()`: this is the function we pass as an argument to `getTimers()`. It will invoke this function if the server sucessfully returned a response
+
+At each stage of the pipeline, the result of the prebious statement is passed as the argument to the next one:
+
+1. When `checkStatus()` is invoked, it's passed a Fetch response object that `fetch()` returns
+2. `checkStatus()`, after verifying the response, returns the same response object
+3. `parseJSON()` is invoked and passed the response object returned by `checkStatus()`
+4. `parseJSON()` returns the JavaScript array of timers returned by the server
+5. `success()` is invoked with the array of timers returned by `parseJSON()`
+
+`startTimer()` makes a POST request to the `/api/timers/start` endpoint. The server needs the `id` of the timer and the `start` time.
+
+```javascript
+function startTimer(data) {
+  return fetch("/api/timers/start", {
+    method: "post",
+    body: JSON.stringify(data),
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  }).then(checkStatus);
+}
+```
+
+In addition to `headers`, the request parameters object that we pass to `fetch()` has two more properties:
+
+- `method`: the HTTP request method. `fetch()` defaults to a GET request
+- `body`: the body of our HTTP request, the data we're sending to the server
+
+---
+
+## Sending starts and stops to the server
+
+```javascript
+// TimersDashboard
+startTimer = (timerId) => {
+  const now = Date.now();
+
+  this.setState({
+    timers: this.state.timers.map((timer) => {
+      if (timer.id === timerId) {
+        return Object.assign({}, timer, {
+          runningSince: now,
+        });
+      } else {
+        return timer;
+      }
+    }),
+  });
+  client.startTimer({ id: timerId, start: now });
+};
+
+stopTimer = (timerId) => {
+  const now = Date.now();
+
+  this.setState({
+    timers: this.state.timers.map((timer) => {
+      if (timer.id === timerId) {
+        const lastElapsed = now - timer.runningSince;
+        return Object.assign({}, timer, {
+          elapsed: timer.elapsed + lastElapsed,
+          runningSince: null,
+        });
+      } else {
+        return timer;
+      }
+    }),
+  });
+  client.stopTimer({ id: timerId, stop: now });
+};
+```
+
+You might ask: Why do we still manually make the state change within React? Can’t we just inform the server of the action taken and then update state based on the server, the source of truth? Indeed, the following implementation is valid:
+
+```javascript
+startTimer: function (timerId) {
+  const now = Date.now();
+  client.startTimer(
+    { id: timerId, start: now }
+  ).then(loadTimersFromServer);
+}
+```
+
+We can chain a `.then()` to `startTimer()` as the function returns our original promise object. The last stage of the `startTimer()` pipeline would then be invoking the function `loadTimersFromServer()`. So immediately after the server processes our start timer request, we would make a subsequent request asking for the latest list of timers. This response would contain the now-running timer. React’s state updates and the running timer would then be reflected in the UI. Again, this is valid. However, the user experience will leave something to be desired. Right now, clicking the start/stop button gives instantaneous feedback because the state changes locally and React immediately re-renders. If we waited to hear back from the server, there might be a noticeable delay between the action (mouse click) and the response (timer starts running). What we’re doing here is called optimistic updating. We’re updating the client locally before waiting to hear from the server. This duplicates our state update efforts, as we perform updates on both the client and the server. But it makes our app as responsive as possible.
+
+<details>
+  <summary>Optimistic updating: Validations</summary>
+
+> Whenever we optimistic update, we always try to replicate whatever restrictions the server would have. This way, our client state changes under the same conditions as our server state. For example, imagine if our server enforced that a timer’s title cannot contain symbols. But the client did not enforce such a restriction. What would happen? A user has a timer named Gardening. He feels a bit cheeky and renames it Gardening :P. The UI immediately reflects his changes, displaying Gardening :P as the new name of the timer. Satisfied, the user is about to get up and grab his shears. But wait! His timer’s name suddenly snaps back to Gardening. To successfully pull off eager updating, we must diligently replicate the code that manages state changes on both the client and the server. Furthermore, in a production app we should surface any errors the request to the server returns in the event that there is an inconsistency in the code or a fluke (the server is down)
+
+</details>
+
+---
+
+## Sending creates, updates, and deletes to the server
+
+```javascript
+// TimersDashboard
+createTimer = (timer) => {
+  const t = helpers.newTimer(timer);
+  this.setState({
+    timers: this.state.timers.concat(t),
+  });
+
+  client.createTimer(t);
+};
+
+updateTimer = (attrs) => {
+  this.setState({
+    timers: this.state.timers.map((timer) => {
+      if (timer.id === attrs.id) {
+        return Object.assign({}, timer, {
+          title: attrs.title,
+          project: attrs.project,
+        });
+      } else {
+        return timer;
+      }
+    }),
+  });
+
+  client.updateTimer(attrs);
+};
+
+deleteTimer = (timerId) => {
+  this.setState({
+    timers: this.state.timers.filter((t) => t.id !== timerId),
+  });
+
+  client.deleteTimer({ id: timerId });
+};
+```
 
 [^1]: [jq](https://stedolan.github.io/jq/)
