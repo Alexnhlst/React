@@ -1,30 +1,32 @@
-# React from zero[^1] :book:
+# JSX and the Virtual DOM
 
 ## Table of contents
 
-1. [Basics](/../../tree/01-basics/README.MD)
-2. [JSX](/../../tree/02-jsx/README.MD)
-3. [Components](/../../tree/03-components/README.MD)
-4. [Props](/../../tree/04-props/README.MD)
-5. [Nested and Class Components](/../../tree/05-nested-class-components/README.MD)
-6. [Lifecycle Methods](/../../tree/06-lifecycle-methods/README.MD)
-7. [Example app](/../../tree/07-example-app/README.MD)
-8. [Refactoring Components](/../../tree/08-refactoring-components/README.MD)
-9. [Refs](/../../tree/09-refs/README.MD)
-10. [Integration](/../../tree/10-integration/README.MD)
-11. [Unit Testing](/../../tree/11-unit-testing/README.MD)
-12. [ES2015](/../../tree/12-es2015/README.MD)
+1. [Virtual DOM](#virtual-dom)
+2. [Virtual DOM Pieces](#virtual-dom-pieces)
 
 ---
 
-# Fullstack React[^2] :book:
+## Virtual DOM
 
-## Table of contents
+React works differently than many earlier front-end JavaScript frameworks in that instead of working with the browser's DOM, it builds a virtual representation of the DOM.
+When we do "classic-"style web development, we would typically:
 
-1. [First React App](/../../tree/13-first-react-app/README.MD)
-2. [Components](/../../tree/14-components/README.MD)
-3. [Components and servers](/../../tree/15-components-and-servers/README.MD)
-4. [JSX and the virtual DOM](/../../tree/16-jsx-vdom/README.MD)
+1. locate an element (using `document.querySelector` or `document.getElementById`) and then
+2. modify the element directly (say, by calling `.innerHTML()` on the element)
 
-[^1]: [Book](https://www.newline.co/react-from-zero/)
-[^2]: [Book](https://www.newline.co/fullstack-react)
+This style of development is problematic in that:
+
+- It's hard to keep track of changes - it can become difficult keep track of current (and prior) state of the DOM to manipulate it into the form we need
+- It can be slow - modifying the actual-DOM is a costly operation, and modifying the DOM on every change can cause poor performance
+
+The Virtual DOM was created to deal with these issues. It is a tree of JavaScript objects that represents the actual DOM. When using it we code as if we're recreating the entire DOM on every update. The idea of re-creating the entire DOM results in an easy-to-comprehend development model: instead of the developer keeping track of all DOM state changes, the developer simply returns the DOM they wish to see. React takes care of the transformation behind the scenes.
+The Virtual DOM will:
+
+- use efficient diffing algorithms, in order to know what changed
+- update subtrees of the DOM simultaneously
+- batch updates to the DOM
+
+---
+
+## Virtual DOM Pieces
