@@ -23,7 +23,7 @@
 
 1. [First React App](/../../tree/13-first-react-app/README.MD)
 2. [Components](/../../tree/14-components/README.MD)
-3. [Components](/../../tree/14-components-and-servers/README.MD)
+3. [Components and servers](/../../tree/15-components-and-servers/README.MD)
 
 [^1]: [Book](https://www.newline.co/react-from-zero/)
 [^2]: [Book](https://www.newline.co/fullstack-react)
