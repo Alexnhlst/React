@@ -5,7 +5,8 @@
 1. [Breaking the app into components](#breaking-the-app-into-components)
 2. [Steps for building React apps from scratch](#steps-for-building-react-apps-from-scratch)
 3. [Build a static version of the app](#build-a-static-version-of-the-app)
-4. [Determine what should be stateful]()
+4. [Determine what should be stateful](#determine-what-should-be-stateful)
+5. [Determine in which component each piece of state should live]()
 
 ---
 
@@ -256,4 +257,81 @@ ReactDOM.render(<TimersDashboard />, document.getElementById("content"));
 
 ## Determine what should be stateful
 
+- `TimersDashboard`
+
+  - `isOpen` boolean for `ToggleableTimerForm`
+
+**Stateful**. The data is defined in this component, changes over time, and cannot be computed from other state or props.
+
+- `EditableTimerList`
+
+  - Timer properties
+
+**Stateful**. The data is defined in this component, changes over time, and cannot be computed from other state or props.
+
+- `EditableTimer`
+
+  - `editFormOpen` for a given timer
+
+**Stateful**. The data is defined in this component, changes over timer, and cannot be computed from other state or props.
+
+- `Timer`
+
+  - Timer properties
+
+In this context, **not stateful**. Properties are passed down from the parent.
+
+- `TimerForm`
+
+We might be tempted to conclude that `TimerForm` doesn't manage any stateful data, as `title` and `project` are props passed down from the parent. However forms are special state managers in their own right.
+So, outside of TimerForm, we’ve identified our stateful data:
+
+- The list of timers and properties of each timer
+- Whether or not the edit form of a timer is open
+- Whether or not the create form is open
+
+<details>
+    <summary>More details</summary>
+
+- `TimersDashboard`
+
+  - In our static app, this declares two child components. It sets one prop, which is the `isOpen` boolean that is passed down to `ToggleableTimerForm`
+
+- `EditableTimerList`
+
+  - This declares two child components, each which have props corresponding to a given timer's properties
+
+- `EditableTimer`
+
+  - This uses the prop `editFormOpen`
+
+- `Timer`
+
+  - This uses all the props for a timer.
+
+- `TimerForm`
+
+  - This has two interactive input fields, one for `title` and one for `project`. When editing an existing timer, these fields are initialized with the timer's current values.
+
+We can apply criteria to determine if data should be stateful: [^2]
+
+1. Is it passed in from a parent via props? If so, it probably isn't state.
+
+   - A lot of the data used in our child components are already in their parents. This criterion helps us de-duplicate. For example, "timer properties" is listed multiple times. When we see the properties declared in `EditableTimerList`, we can consider it state. But when we see it elsewhere it's not
+
+2. Does it change over time? If not, it probably isn't state.
+
+   - This is a key criterion of stateful data: it changes
+
+3. Can you compute it based on any other state or props in your component? If so, it's not state.
+
+   - For simplicity, we want to strive to represent state with as few data points as possible.
+
+</details>
+
+---
+
+## Determine in which component each piece of state should live
+
 [^1]: [Single responsibility principle](https://en.wikipedia.org/wiki/Single_responsibility_principle)
+[^2]: [Thinking in React](https://reactjs.org/docs/thinking-in-react.html)
