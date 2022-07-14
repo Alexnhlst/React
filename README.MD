@@ -4,6 +4,7 @@
 
 1. [Introduction](#introduction)
 2. [The Server API](#the-server-api)
+3. [Loading state from the server](#loading-state-from-the-server)
 
 ---
 
@@ -131,5 +132,9 @@ The `-d` flag sets the body of our request. curl will quickly return without any
 > ```shell
 > curl -X GET localhost:3000/api/timers | jq ".[] | { id }"
 > ```
+
+---
+
+## Loading state from the server
 
 [^1]: [jq](https://stedolan.github.io/jq/)
