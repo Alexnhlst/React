@@ -194,4 +194,32 @@ Converting an uncontrolled `input` component to a controlled one requires three 
 3. using `event.target.value` we update the `input` element's `value` in `state`
 4. `render()` is called and the `input` is updated with the new value in `state`
 
+```javascript
+render() {
+    return (
+      <div>
+        <h1>Sign Up Sheet</h1>
+
+        <form onSubmit={this.onFormSubmit}>
+          <input
+            placeholder='Name'
+            value={this.state.name}
+            onChange={this.onNameChange}
+          />
+
+          <input type='submit' />
+        </form>
+
+        <div>
+          <h3>Names</h3>
+          <ul>
+            { this.state.names.map((name, i) => <li key={i}>{name}</li>) }
+          </ul>
+        </div>
+      </div>
+    );
+  }
+};
+```
+
 [^1]: [SyntheticEvent](https://reactjs.org/docs/events.html)
