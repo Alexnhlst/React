@@ -7,6 +7,8 @@
 3. [Events and Event Handlers](#events-and-event-handlers)
 4. [Text Input](#text-input)
 5. [Uncontrolled vs. Controlled Components](#uncontrolled-vs-controlled-components)
+6. [Multiple Fields](#multiple-fields)
+7. [On Validation](#on-validation)
 
 ---
 
@@ -218,8 +220,128 @@ render() {
         </div>
       </div>
     );
-  }
+}
+```
+
+The only difference in our `input` is that we've removed the `ref` `prop` and replaced it with both a `value` and an `onChange` `prop`. Now that the `input` is controlled, its `value` will always be set equal to a property of our `state`. In this case, that property is `name`, so the `value` of the `input` is `this.state.name`. While not strictly necessary, it's a good habit to provide sane defaults for any properties of state that will be used in our component. Because we now use `state.name` for the `value` of our `input`, we'll want to choose what value it will have before the user has had a chance to provide one. In our case, we want the field to be empty, so the default value will be an empty string
+
+```javascript
+state = {
+  name: "",
+  names: [],
 };
 ```
+
+To make our `input` operational, we'll need to listen to its `onChange` events and use those to update the `state`. To achieve this, we've created an event handler for `onChange`. This handler is responsible for updating our `state` so that `state.name` will always be updated with what the user has typed into the field. We've created the method `onNameChange()` for that purpose.
+
+```javascript
+onNameChange = (evt) => {
+  this.setState({ name: evt.target.value });
+};
+```
+
+The user interacts with the field. This triggers an `onChange` event which calls our `onNameChange()` handler. It updates the `state`, and this in turn triggers `render()` to update the field with the new `value`. When the user submits the form, `onFormSubmit()` is called, and we need that method to add the entered name (`state.name`) to the names list (`state.names`).
+
+```javascript
+onFormSubmit = (evt) => {
+  const names = [...this.state.names, this.state.name];
+  this.setState({ names: names, name: "" });
+  evt.preventDefault();
+};
+```
+
+---
+
+## Multiple Fields
+
+If we continue our current approach and create more controlled components, each with a corresponding state property and an `onChange` handler, our component will become quite verbose.
+
+```javascript
+state = {
+  fields: {
+    name: "",
+    email: "",
+  },
+  people: [],
+};
+```
+
+The `fields` object can store state for as many inputs as we'd like. Instead of creating an `onChange` handler for each input, we can create a single method that accepts change events from all of our input.
+
+```javascript
+  render() {
+    return (
+      <div>
+        <h1>Sign Up Sheet</h1>
+
+        <form onSubmit={this.onFormSubmit}>
+          <input
+            placeholder="Name"
+            name="name"
+            value={this.state.fields.name}
+            onChange={this.onInputChange}
+          />
+
+          <input
+            placeholder="Email"
+            name="email"
+            value={this.state.fields.email}
+            onChange={this.onInputChange}
+          />
+
+          <input type="submit" />
+        </form>
+
+        <div>
+          <h3>People</h3>
+          <ul>
+            {this.state.people.map(({name, email}, i) => (
+              <li key={i}>
+                {name} ({email})
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+```
+
+We've added a second `input` to handle email addresses. We've changed the `value` `prop` of the `input` fields so that they don't access attributes on the root of the `state` object. Instead they access the attributes of `state.fields` Both `input` fields heve their `onChange` `prop` set to the same event handler, `onInputChange()`. Our `input` fields now have a `name` `prop`. To allow our general event handler, `onInputChange()`, to be able to tell where the change event came from and where we should store it in our state , we provide that `name` `prop` so that it can be pulled off of the event via its target attribute.
+
+```javascript
+onInputChange = (evt) => {
+  const fields = Object.assign({}, this.state.fields);
+  fields[evt.target.name] = evt.target.value;
+  this.setState({ fields });
+};
+```
+
+The two key differences are that:
+
+1. we are updating a value nested in the `state` (e.g. updating `state.fields.email` instead of `state.email`), and
+2. we're using `evt.target.name` to inform which attribute of `state.fields` needs to be updated.
+
+To properly update our state, we first grab a local reference to `state.fields`. Then, we use information from the event (`evt.target.name` and `evt.target.value`) to update the local reference. Lastly, we `setState()` with the modified local reference.
+
+```javascript
+onFormSubmit = (evt) => {
+  const people = [...this.state.people, this.state.fields];
+  this.setState({
+    people,
+    fields: {
+      name: "",
+      email: "",
+    },
+  });
+  evt.preventDefault();
+};
+```
+
+In `onFormSubmit()` we first obtain a local reference to the list of people who have signed up, `this.state.people`. Then, we addd our `this.state.fields` object onto the `people` list. Finally, we use `this.setState()` to simultaneously update our list with the new information and clear all the fields by returning `state.fields` to the empty defaults.
+
+---
+
+## On Validation
 
 [^1]: [SyntheticEvent](https://reactjs.org/docs/events.html)
