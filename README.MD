@@ -5,6 +5,7 @@
 1. [Virtual DOM](#virtual-dom)
 2. [Virtual DOM Pieces](#virtual-dom-pieces)
 3. [JSX](#jsx)
+4. [JSX Gotchas](#jsx-gotchas)
 
 ---
 
@@ -97,4 +98,155 @@ React, using it's own virtual representation of the view-tree, can render this t
 
 ## JSX
 
+To describe pages to our browser we write HTML; the HTML is parsed by the browser to create HTML Elements which become the DOM. HTML works very well for specifying tag hierarchies. It would be nice to represent our React component tree using markup, muck like we do for HTML. This is the idea behind JSX. Instead of calling `React.createElement` for each element, the equivalent structure in JSX is:
+
+```javascript
+let boldElement = <b>Text (as a string)</b>;
+```
+
+JSX stands for JavaScript Syntax Extension, and it is a syntax React provides that looks a lot like HTML/XML. Rather than building our component trees using normal JavaScript directly, we write our components almost as if we were writing HTML. One difference between React components and HTML tags is in the naming. HTML tags start with a lowercase letter, while React components start with an uppercase. JSX is transformed into JavaScript by using a pre-processor build-tool before we load it with the browser. When we write JSX, we pass it through a "compiler" that converts the JSX to JavaScript. The most common tool for this is a plugin to `babel`JSX provides another advantage: we can mix JavaScript with our JSX markup.
+
+In order to use a JavaScript expression in a component's attribute, we wrap it in curly braces:
+
+```javascript
+const warningLevel = "debug";
+const component = (<Alert
+                    color={warningLevel === "debug" ? "gray" : "red}
+                    log={true} />)
+```
+
+Another common pattern is to use a boolean checking expression and then render another element conditionally
+
+```javascript
+const renderAdminMenu = function () {
+  return <MenuLink to="/users">User accounts</MenuLink>;
+};
+
+const userLevel = this.props.userLevel;
+return (
+  <ul>
+    <li>Menu</li>
+    {userLevel === "admin" && renderAdminMenu()}
+  </ul>
+);
+```
+
+In HTML, the presence of some attributes sets the attribute to true. For instance, a disabled `<input>` HTML element can be defined:
+
+```HTML
+<input name="Name" disabled />
+```
+
+In React we need to set these as booleans
+
+```javascript
+<input name="Name" disabled={true}>
+```
+
+We can define comments inside of JSX by using the curly braces with comment delimiters
+
+```javascript
+let userLevel = "admin";
+{
+  /*
+    Show the admin menu if the userLevel is "admin"
+*/
+}
+{
+  userLevel === "admin" && <AdminMenu />;
+}
+```
+
+Sometimes when we have many props to pass to a component, it can be cumbersome to list each one individually. We can use the JSX spread syntax:
+
+```javascript
+<Component {...props} />;
+{
+  /* essentially the same as this */
+}
+<Component msg={"Hello"} recipient={"World"} />;
+```
+
+---
+
+## JSX Gotchas
+
+When we want to set the CSS class of an HTML element, we normally use the `class` attribute in the tag
+
+```HTML
+<div class="box"></div>
+```
+
+Since JSX is so closely tied to JavaScript, we cannot use identifiers that JavaScript uses in our tag attributes. Attributes such as `for` and `class` conflict with the JavaScript keywords. JSX uses `className`:
+
+```javascript
+<div className="box"></div>
+```
+
+To pass multiple classes in JSX, we can join an array to convert it to a string:
+
+```javascript
+let cssNames = ["box", "alert"];
+(<div className={cssNames.join(" ")}></div>>)
+```
+
+The `classnames` npm package[^2] is a great extension that we use to help manage css classes. It can take a list of strings or objects and allows us to conditionally apply classes to an element. The `classnames` package takes the arguments, converts them to an object and conditionally applies a CSS class if the value is truthy
+
+```javascript
+class App extends React.Component {
+    render() {
+        const klass = classnames({
+            box: true, // always apply the box class
+            alert: this.props.isAlert, // if a prop is set
+            severity: this.state.onHighAlert, // with a state
+            timed: false // never apply this class
+        });
+        return (<div className={klass}>)
+    }
+}
+```
+
+For the same reason we cannot use the `class` attribute, we cannot apply the `for` attribute to a `<label>` element. Instead, we must use the attribute `htmlFor`
+
+```javascript
+<label htmlFor="email">Email</div>
+```
+
+Entities are reserved characters in HTML which include characters such as less-than, greater-than, the copyright symbol, etc. In orrder to display entities, we can just place the entity code in literal text
+
+```javascript
+<ul>
+  <li>phone: &phone;</li>
+  <li>star: &star;</li>
+</ul>
+```
+
+In order to display entities in dynamic data, we need to surround them in a string inside curly braces. using unicode directly in JS works as expected. Jus as we can send our JS to the browser as UTF-8 text directly. Our browser knows how to display UTF-8 code natively. Instead of usting the entity character code, we can use unicode version instead, as well for emoji
+
+```javascript
+return (
+  <ul>
+    <li>phone: {"\u0260e"}</li>
+    <li>star: {"\u2606"}</li>
+    <li>dolphin: {"\uD83D\uDC2C"}</li>
+  </ul>
+);
+```
+
+If we want to apply our own attributes that the HTML spec does not cover, we have to prefix the attribute key with the string `data-` This requirements only applies to DOM components that are native to HTML and does not mean custom components cannot accept arbitrary keys as props. That is, we can accept any attribute on a custom component:
+
+```javascript
+<span data-highlight={true} />
+<Message dismissible={true} />
+```
+
+There are a standard set of web accessibility[^3] attributes[^4] and its a good idea to use them because there are many people who will have a hard time using our site without them. We can use any of these attribute on an element with the key prepended with the string `aria-`. For instance, to set the hidden attribute:
+
+```HTML
+<div aria-hidden="true" />
+```
+
 [^1]: [Shadow DOM](https://www.webcomponents.org/community/articles/introduction-to-shadow-dom)
+[^2]: [classnames](https://www.npmjs.com/package/classnames)
+[^3]: [Web accessibility](https://www.w3.org/WAI/standards-guidelines/aria/)
+[^4]: [Attributes](https://www.w3.org/TR/wai-aria/)
