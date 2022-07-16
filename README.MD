@@ -16,6 +16,12 @@
 6. [Making modifications to the sample app](#making-modifications-to-the-sample-app)
 7. [Creating a production build](#creating-a-production-build)
 8. [Ejecting](#ejecting)
+9. [Using Create React App with an API server](#using-create-react-app-with-an-api-server)
+   - [`.babelrc`](#babelrc)
+   - [The server](#the-server)
+   - [`Client`](#client)
+10. [Concurrently](#concurrently)
+11. [Webpack development proxy](#webpack-development-proxy)
 
 ---
 
@@ -412,8 +418,6 @@ An eject will copy all the scripts and configuration encapsulated in `react-scri
 > ❯ cd heart-webpack-ejected && rm -rf node_modules && npm i
 > ```
 
-[^1]: [JavaScript Source Maps](https://developer.chrome.com/blog/sourcemaps/)
-
 ```sh
 ❯ npm run eject
 
@@ -422,3 +426,275 @@ An eject will copy all the scripts and configuration encapsulated in `react-scri
 
 ? Are you sure you want to eject? This action is permanent. (y/N)
 ```
+
+After all the files are copied from `react-scripts` into your directory, `npm install` will run. This is because all the dependencies for `react-scripts` have been dumped into our `package.json`. We have now two folders: `config/` and `scripts/`. Take a look at `package.json`. There are loads of dependencies. Some of these dependencies are necessary, like Babel and React. Others — like `eslint` and `whatwg-fetch` — are more "nice-to-haves." This reflects the ethos of the Create React App project: an opinionated starter kit for the React developer.
+
+```sh
+❯ ls scripts/ -1p
+build.js
+start.js
+test.js
+```
+
+When we ran `npm start` and `npm run build` earlier, we were executing the scripts `start.js` and `build.js`.
+
+```sh
+❯ ls config/ -1p
+env.js
+jest/
+paths.js
+polyfills.js
+webpack.config.dev.js
+webpack.config.prod.js
+webpackDevServer.config.js
+```
+
+`react-scripts` provided sensible defaults for the tools that it provides. In `package.json`, it specifies configuration for Babel. Here, it specifies configuration for Webpack and Jest. Of particular noteworthiness are the configuration files for Webpack.
+
+---
+
+## Using Create React App with an API server
+
+`food-lookup` is the root of the app, here's the folder structure:
+
+```sh
+❯ ls -1p
+client/
+db/
+package.json
+package-lock.json
+README.md
+server.js
+start-client.js
+start-server.js
+```
+
+Inside of `client/` is where the React app lives, it was generated with Create React App
+
+```sh
+❯ ls -a1p client/
+./
+../
+.babelrc
+.gitignore
+package.json
+package-lock.json
+public/
+README.md
+src/
+```
+
+> the `-a` flag for the `ls` command displays all files, including "hidden" files that are preceded by a `.` like `.babelrc`.
+
+We have two `package.json` files. One sits in the root and specifies the packages that the server needs. And the other lives in `client/` and specifies the packages that the React app needs.
+
+### `.babelrc`
+
+```json
+{
+  "plugins": ["transform-class-properties"]
+}
+```
+
+This plugin gives the property initializer syntax used at the end of the first chapter. In that project, we specified we wanted to use this plugin by setting the `data-plugins` attribute on the script tag for `app.js`. For this project, Babel is being included and managed by `react-scripts`. To specify plugins we'd like Babel to use for our Create React App projects, we must first include the plugin in our `package.json`. In order to boot our app, we need to install the packages for both the server and client:
+
+```sh
+❯ npm i
+❯ cd client
+❯ npm i
+❯ cd ..
+```
+
+The app consists of three components:
+
+- App: The parent container for the application
+- SelectedFood: A table that lists selected foods. Clicking on a food item removes it
+- FoodSearch: Table that provides a live search field. Clicking on a food item in the table adds it to the total (`SelectedFood`)
+
+### The server
+
+The command to boot the server is not yet defined inside `package.json`, so to run it we use the command:
+
+```sh
+npm run server
+```
+
+This server provides a single API endpoint `/api/food` which expect a single parameter, `q`, the food we are searching for
+
+```sh
+❯ curl -X GET  localhost:3001/api/food"?"q=hash+browns | jq "."
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   467  100   467    0     0  72560      0 --:--:-- --:--:-- --:--:-- 77833
+[
+  {
+    "carbohydrate_g": 28.88,
+    "protein_g": 2.58,
+    "fat_g": 16.04,
+    "kcal": 272,
+    "description": "Fast foods, potatoes, hash browns, rnd pieces or patty"
+  },
+  {
+    "carbohydrate_g": 30.51,
+    "protein_g": 3,
+    "fat_g": 17.37,
+    "kcal": 301,
+    "description": "Chick-fil-a, hash browns"
+  },
+  {
+    "carbohydrate_g": 26.59,
+    "protein_g": 2.49,
+    "fat_g": 8.76,
+    "kcal": 197,
+    "description": "Denny's, hash browns"
+  },
+  {
+    "carbohydrate_g": 26.59,
+    "protein_g": 2.49,
+    "fat_g": 8.76,
+    "kcal": 197,
+    "description": "Restaurant, family style, hash browns"
+  }
+]
+```
+
+### `Client`
+
+The `FoodSearch` component makes the call to `/api/foods`. It performs a request every time the user changes the search field. It uses a library, `Client`, to make the request. The `Client` module is defined in `client/src/Client.js`. It exports an object with one method, `search()`.
+
+```javascript
+function search(query, cb) {
+  return fetch(`http://localhost:3001/api/food?q=${query}`, {
+    accept: "application/json",
+  })
+    .then(checkStatus)
+    .then(parseJSON)
+    .then(cb);
+}
+```
+
+We have two different servers we need to have running in order for our app to work. We need the API server running (at `localhost:3001`) and the Webpack development server running (at `localhost:3000`). If we have both servers running, they should presumably be able to communicate.
+
+---
+
+## Concurrently
+
+Concurrently[^2] is a utility for running multiple processes. If you were writing your app to just work on Mac or Unix machines, you could do something like this:
+
+```sh
+❯ concurrently "npm run server" "cd client && npm start"
+```
+
+The `&:` operator is not cross-platform, so we've included a `start-client.js` script with the project, which can be launched from the top-level directory with the command
+
+```sha
+❯ babel-node start-client.js
+```
+
+```javascript
+const args = ["start"];
+const opts = { stdio: "inherit", cwd: "client", shell: true };
+require("child_process").spawn("npm", args, opts);
+```
+
+The `start` and `client` commands must be added to our `package.json`:
+
+```json
+"scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "babel-node start-server.js",
+    "client": "babel-node start-client.js"
+  },
+```
+
+As of now, the app doesn't work as intended. Our browser prevented our React app (hosted at `localhost:3000`) from loading a resource from a different origin (`localhost:3001)`. We attempted to perform Cross-Origin Resource Sharing. The browser prevent these types of requests from scripts for security reasons
+
+```sh
+Fetch API cannot load http://localhost:3001/api/food?q=c. No 'Access-Control-Allow-Origin' header is present on the requested resource. Origin 'http://localhost:3000' is therefore not allowed access. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
+```
+
+---
+
+## Webpack development proxy
+
+Create React App enables you to setup the Webpack development server to proxy requests to your API. Instead of making a request to the API server at `localhost:3001`, our React app can make requests to `localhost:3000`. We can then have Webpack proxy those requests to our API server.
+
+Our original approach was to have the user's browser interact directly with both servers
+
+```mermaid
+flowchart LR
+    A[User]
+
+    subgraph B["Webpack dev server"]
+        C[localhost:3000]
+    end
+
+    subgraph D["API server"]
+        E[localhost:3001]
+    end
+
+A --> B
+A --> D
+```
+
+However, we want the browser to just interact with the Webpack development server at `localhost:3000`. Webpack will forward along requests intended for the API
+
+```mermaid
+flowchart LR
+    A[User]
+
+    subgraph B["Webpack dev server"]
+        C[localhost:3000]
+    end
+
+    subgraph D["API server"]
+        E[localhost:3001]
+    end
+
+A --> B
+B --> D
+
+A -- Proxied request--> D
+```
+
+To do this. modify `client/src/Client.js` removing the base URL:
+
+```javascript
+function search(query, cb) {
+  return fetch(`/api/food?q=${query}`, {
+    accept: "application/json",
+  })
+    .then(checkStatus)
+    .then(parseJSON)
+    .then(cb);
+}
+```
+
+Next, in our client's `package.json`, we can set a special property, `proxy`:
+
+```json
+{
+  "name": "client",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "http://localhost:3001",
+  "devDependencies": {
+    "react-scripts": "1.1.1",
+    "concurrently": "3.4.0"
+  },
+  "dependencies": {
+    "babel-plugin-transform-class-properties": "6.22.0",
+    "react": "16.12.0",
+    "react-dom": "16.12.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}
+```
+
+[^1]: [JavaScript Source Maps](https://developer.chrome.com/blog/sourcemaps/)
+[^2]: [Concurrently](https://github.com/open-cli-tools/concurrently)
