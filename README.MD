@@ -344,4 +344,81 @@ In `onFormSubmit()` we first obtain a local reference to the list of people who 
 
 ## On Validation
 
+Validation is so central to building forms that it's rare to have a form without it. It can be both on the level of the individual field and on the form as a whole. When you validate on an individual field, you're making sure that the user has entered data that conforms to your application's expectations and constraints as it relates to that piece of data. Validation on the form as a whole is slightly different. Here is where you'll make sure that all required fields have been entered. This is also a good place to check for internal consistency. There are trade-offs for how and when we validate. On some fields we might want to give validation feedback in real-time. We also have options for how we display validation errors. To add validation to our sign-upp we've made some changes:
+
+1. add a place in `state` to store validation errors if they exist
+2. change our `render()` method so it will show validation error messages with red text next to each field
+3. add a new `validate()` method that takes our `fields` object as an argument and returns a `fieldErrors` object
+4. `onFormSubmit()` will call the new `validate()` method to get the `fieldErrors` object, and if there are errors it wil add them to the state and return early without adding the person to the list
+
+```javascript
+state = {
+  fields: {
+    name: "",
+    email: "",
+  },
+  fieldErrors: {},
+  people: [],
+};
+```
+
+```javascript
+ render() {
+    return (
+      <div>
+        <h1>Sign Up Sheet</h1>
+
+        <form onSubmit={this.onFormSubmit}>
+          <input
+            placeholder="Name"
+            name="name"
+            value={this.state.fields.name}
+            onChange={this.onInputChange}
+          />
+
+          <span style={{color: 'red'}}>{this.state.fieldErrors.name}</span>
+
+          <br />
+
+          <input
+            placeholder="Email"
+            name="email"
+            value={this.state.fields.email}
+            onChange={this.onInputChange}
+          />
+
+          <span style={{color: 'red'}}>{this.state.fieldErrors.email}</span>
+
+          <br />
+
+          <input type="submit" />
+        </form>
+
+        <div>
+          <h3>People</h3>
+          <ul>
+            {this.state.people.map(({name, email}, i) => (
+              <li key={i}>
+                {name} ({email})
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+```
+
+There are two new `span` elements, one for each field. Each `span` will look in the appropriate place in `state.fieldErrors` for an error message. If one is found it will be displayed in red next to the field. It is after the user submits the form that we will check the validity of their input. So the appropriate place to begin validation is in the `onFormSubmit()` method. We'll want to create a standalone function for that method to call
+
+```javascript
+validate = (person) => {
+  const errors = {};
+  if (!person.name) errors.name = "Name Required";
+  if (!person.email) errors.email = "Email Required";
+  if (person.email && !isEmail(person.email)) errors.email = "Invalid Email";
+  return errors;
+};
+```
+
 [^1]: [SyntheticEvent](https://reactjs.org/docs/events.html)
