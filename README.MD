@@ -15,6 +15,7 @@
 5. [Webpack basics](#webpack-basics)
 6. [Making modifications to the sample app](#making-modifications-to-the-sample-app)
 7. [Creating a production build](#creating-a-production-build)
+8. [Ejecting](#ejecting)
 
 ---
 
@@ -42,31 +43,31 @@ The time tracking app had a Client module. That module's file defined a few func
 
 The `create-react-app` library provides a command you can use to initiate a new Webpack-powered React app
 
-```bash
-create-react-app my-app-name
+```sh
+❯ create-react-app my-app-name
 ```
 
 The library will configure a "black box" Webpack setup for you. It provides you with the benefits of a Webpack setup while abstracting away the cconfiguration details. To use Create React App, we can install it globally from the command line using the `-g` flag
 
-```bash
+```sh
 ❯ npm i -g create-react-app@1.4.1
 ```
 
 > For the course we're using the version 1.4.1 specified by `@1.4.1`. It is recommended as it is the same version tested with the code provided with the course. To install the latest version use
 >
-> ```bash
+> ```sh
 > ❯ npm i -g create-react-app@latest
 > ```
 
 We're going to create a new app called `heart-webpack`:
 
-```bash
+```sh
 ❯ create-react-app heart-webpack --scripts-version=1.0.14
 ```
 
 This will create the boilerplate for the new app and install the app's dependencies. The `--scripts-version` flag ensures that `react-scripts` is the same as the one used in the book
 
-```bash
+```sh
 ❯ cd heart-webpack/
 ❯ ls -1p
 node_modules/
@@ -154,7 +155,7 @@ The stark difference from the `index.html` we've used in previous apps: there ar
 
 Inside of `src/`, we see some JavaScript files:
 
-```bash
+```sh
 ❯ ls src/ -1p
 App.css
 App.js
@@ -226,7 +227,7 @@ Stepping through this file, we first import both `react` and `react-dom`. Becaus
 
 ## Booting the App
 
-```bash
+```sh
 ❯ npm start
 ```
 
@@ -304,13 +305,13 @@ Even though hot reloading is not supported for our JavaScript files, Webpack wil
 
 For production, we want Webpack to write a bundle to disk. We'll end up with a production-optimized build of our HTML, CSS, and JavaScript. We could then serve these assets using whatever HTTP server we wanted. To share our app with the world, we'd just need to upload this build to an asset host, like Amazon's S3. After quitting the server if it's running with `CTRL+C`, run the `build` command
 
-```bash
+```sh
 ❯ npm run build
 ```
 
 This will create a `build` folder in the project's root
 
-```bash
+```sh
 ❯ cd build
 ❯ ls -1p
 asset-manifest.json
@@ -319,4 +320,105 @@ index.html
 manifest.json
 service-worker.js
 static/
+```
+
+If you look at this `index.html`, you'll note that Webpack has performed some additional processing that it did not perform in development. Most notably: there are no newlines. The entire file is on a single line. Newlines are not necessary in HTML and are just extra bytes. We don't need them in production.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,shrink-to-fit=no"
+    />
+    <meta name="theme-color" content="#000000" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <title>React App</title>
+    <link href="/static/css/main.9c1ebf63.css" rel="stylesheet" />
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="text/javascript" src="/static/js/main.9c03e57c.js"></script>
+  </body>
+</html>
+```
+
+Instead of referencing a `bundle.js`, this `index.html` references a file in `static/`. This production `index.html` now has a `link` tag to a CSS bundle. In production, hot reloading capability is irrelevant. Therefore, Webpack deploys CSS normally.
+
+> Webpack versions assets. We can see that our JavaScript bundle has a different name and is versioned (`main.<version>.js`). Asset versioning is useful when dealing with browser caches in production. If a file is changed, the version of that file will be changed as well. Client browsers will be forced to fetch the latest version
+
+The `static/` folder is organized as follows:
+
+```sh
+❯ ls static -1p
+css/
+js/
+media/
+```
+
+Checking out the folders individually:
+
+```sh
+❯ ls static/css -1p
+main.9c1ebf63.css
+main.9c1ebf63.css.map
+
+❯ ls static/js -1p
+main.9c03e57c.js
+main.9c03e57c.js.map
+
+❯ ls static/media -1p
+logo.5d5d9eef.svg
+```
+
+If you open the CSS file, you'll see just two lines: The first is all of our app's CSS, stripped of all superfluous whitespace. The second line is a special comment declaring the location of the map file. The JavaScript file is even more packed. In development, `bundle.js` has some structure. You can pick apart where the individual modules live. The production build does not have this structure. What's more, our code has been both minified and uglified.
+
+<details>
+  <summary>Minification, uglification, and source maps</summary>
+  >For production environments, we can significantly reduce the size of JavaScript files by converting them from a human-readable format to a more compact one that behaves exactly the same. The basic strategy is stripping all excess characters, like spaces. This process is called minification. Uglification (or obfuscation) is the process of deliberately modifying JavaScript files so that they are harder for humans to read. Again, the actual behavior of the app is unchanged. Ideally, this process slows down the ability for outside developers to understand your codebase. Both the `.css` and `.js` files are accompanied by a companion file ending in `.map.` The `.map` file is a source map that provides debugging assistance for production builds. Because they've been minified and uglified, the CSS and JavaScript for a production app are difficult to work with. If you encounter a JavaScript bug on production, for example, your browser will direct you to a cryptic line of this obscure code. Through a source map, you can map this puzzling area of the codebase back to its original, un-built form. [^1]
+</details>
+
+Last, the media folder will contain all of our app's other static files, like images and videos. This app only has one image, the React logo SVG file. Again, this bundle is entirely self-contained and ready to go. If we wanted to, we could install the same `http-server` package that we used in the first application and use it to serve this folder, like this:
+
+```sh
+http-server ./build -p 3000
+```
+
+Without the Webpack development server, you can imagine the development cycle would be a bit painful:
+
+1. Modify the app
+2. Run npm run build to generate the Webpack bundle
+3. Boot/restart the HTTP server
+
+---
+
+## Ejecting
+
+An eject will copy all the scripts and configuration encapsulated in `react-scripts` into your project's directory. It opens up the "black box", handing full control of your app back over to you. Performing an eject is also a nice way to strip some of the "magic" from Create React App.
+
+> There is no backing out from an eject. Be careful when using this command. Should you decide to eject in the future, make sure your app is checked in to source control. You might consider duplicating that directory before proceeding. For example, you can do this:
+>
+> ```sh
+> ❯ cp -r heart-webpack/ heart-webpack-ejected
+> ```
+>
+> The `node_modules` folder does not behave well when it's moved wholesale like this, so you'll need to remove it and re-install
+>
+> ```sh
+> ❯ cd heart-webpack-ejected && rm -rf node_modules && npm i
+> ```
+
+[^1]: [JavaScript Source Maps](https://developer.chrome.com/blog/sourcemaps/)
+
+```sh
+❯ npm run eject
+
+> heart-webpack@0.1.0 eject
+> react-scripts eject
+
+? Are you sure you want to eject? This action is permanent. (y/N)
 ```
