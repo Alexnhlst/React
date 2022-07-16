@@ -1,0 +1,4 @@
+{
+  "testPathDirs": [ "./complete" ],
+  "testRegex": ".*\\.test\\-[3-9]\\.js$"
+}
