@@ -2,4 +2,321 @@
 
 ## Table of contents
 
-1. []()
+1. [Introduction](#introduction)
+2. [JavaScript modules](#javascript-modules)
+3. [Create React App](#create-react-app)
+   - [`public/index.html`](#publicindexhtml)
+   - [`package.json`](#packagejson)
+   - [Scripts](#scripts)
+   - [`src/`](#src)
+   - [`App.js`](#appjs)
+   - [`index.js`](#indexjs)
+4. [Booting the App](#booting-the-app)
+5. [Webpack basics](#webpack-basics)
+6. [Making modifications to the sample app](#making-modifications-to-the-sample-app)
+7. [Creating a production build](#creating-a-production-build)
+
+---
+
+## Introduction
+
+In most of our earlier projects, we loaded React with `script` tags in our apps' `index.html`. And because we've been using ES6, we've also been loading the Babel library with `script` tags.
+
+```html
+<script src="vendor/react.js"></script>
+<script src="vendor/react-dom.js"></script>
+<script src="vendor/babel-standalone.js"></script>
+```
+
+This approach has limitation, the most pressing one is the lack of support for JavaScript modules
+
+---
+
+## JavaScript modules
+
+The time tracking app had a Client module. That module's file defined a few functions. It then set `window.client` to an object that exposed each function as a property. The Client module only exposed these functions. These are the Client module's public methods. The file `public/js/client.js` also contained other function definitions, like `checkStatus()`, which verifies that the server returned a 2xx response code. `checkStatus()` is kept private. That's the idea behind a module in software. You have some self-contained component of a software system that is responsible for some discrete functionality. The module exposes a limited interface to the rest of the system, ideally the minimum viable interface the rest of the system needs to effectively use the module. In React, we can think of each of our individual components as their own modules. Each component is responsible for some discrete part of our interface. React components might contain their own state or perform complex operations, but the interface for all of the same is the same: they accept inputs (`props`) and outpur their DOM representation (`render`). In order for our React components to be truly modular, we'd ideally have them live in their own files. In the upper scope of that file, the component might define a styles object or helper functions that only the component uses. But we want our component-module to only expose the component itself. Until ES6, modules were not natively supported in JavaScript. Developers would use a variety of different techniques to make modular JavaScript. Some solutions only work in the browser, relying on the browser environment (like the presence of `window`). Others only work in Node.js. Browsers don't yet support ES6 modules. But ES6 modules are the future. The syntax is intuitive, we avoid bizarre tactics employed in ES5, and they work both in and outside of the browser. Because of this, the React community has quickly adopted ES6 modules. Due to complexity of module systems, we can't simply use ES6's import/export syntax and expect it to "just work" in the browser, even with Babel. JavaScript bundlers allow us to write modular ES6 JavaScript that works seamlessly in the browser. Bundlers pack numerous advantages: they provide a strategy for both organizing and distributing web apps; they have powerful toolchains for both iterating in development and producing production-optimized builds. The React community's favorite bundler is Webpack. However, bundlers like Webpack come with a significant trade-off: They add complexity to the setup of your web application. Initial configuration can be difficult and you ultimately end up with an app that has more moving pieces. n response to setup and configuration woes, the community has created loads of boilerplates and libraries developers can use to get started with more advanced React apps. But the React core team recognized that as long as there wasn't a core team sanctioned solution, the community was likely to remain splintered. The first steps for a bundler-powered React setup can be confusing for novice and experienced developers alike.
+
+---
+
+## Create React App
+
+The `create-react-app` library provides a command you can use to initiate a new Webpack-powered React app
+
+```shell
+create-react-app my-app-name
+```
+
+The library will configure a "black box" Webpack setup for you. It provides you with the benefits of a Webpack setup while abstracting away the cconfiguration details. To use Create React App, we can install it globally from the command line using the `-g` flag
+
+```shell
+❯ npm i -g create-react-app@1.4.1
+```
+
+> For the course we're using the version 1.4.1 specified by `@1.4.1`. It is recommended as it is the same version tested with the code provided with the course. To install the latest version use
+>
+> ```shell
+> ❯ npm i -g create-react-app@latest
+> ```
+
+We're going to create a new app called `heart-webpack`:
+
+```shell
+❯ create-react-app heart-webpack --scripts-version=1.0.14
+```
+
+This will create the boilerplate for the new app and install the app's dependencies. The `--scripts-version` flag ensures that `react-scripts` is the same as the one used in the book
+
+```shell
+❯ cd heart-webpack/
+❯ ls -1p
+node_modules/
+package.json
+package-lock.json
+public/
+README.md
+src/
+```
+
+Inside `src/` is a sample React app that Create React App has provided for demonstration purposes.
+
+### `public/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <meta name="theme-color" content="#000000" />
+    <!--
+      Comment omitted
+    -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
+    <!--
+      Comment omitted
+    -->
+    <title>React App</title>
+  </head>
+  <body>
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <div id="root"></div>
+    <!--
+     Comment omitted
+    -->
+  </body>
+</html>
+```
+
+The stark difference from the `index.html` we've used in previous apps: there are no `script` tags here.
+
+### `package.json`
+
+```json
+{
+  "name": "heart-webpack",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "react-scripts": "1.1.1",
+    "concurrently": "3.4.0"
+  },
+  "dependencies": {
+    "react": "16.12.0",
+    "react-dom": "16.12.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
+  }
+}
+```
+
+`package.json` specifies a single development dependency, `react-scripts`. Create React App is just a boilerplate generator. That command produced the folder structure of our new React app, inserted a sample app, and specified our `package.json`. It's actually the `react-scripts` package that makes everything work. `react-scripts` specifies all of our app's development dependencies, like Webpack and Babel. Under `dependencies`, we see `react` and `react-dom` listed. Webpack gives us the ability to use npm packages in the browser. We can specify external libraries that we'd like to use in `package.json`
+
+### Scripts
+
+`package.json` specifies four commands under `scripts`. Each executes a command with `react-scripts` At a high-level:
+
+- `start`: Boots the Webpack development HTTP server. This server will handle requests from our web browser
+- `build`: For use in production, this command creates an optimized, static bundle of all our assetss
+- `test`: Executes the app's test suite, if present
+- `eject`: Moves the innards of `react-scripts` into your project's directory. This enables you to abandon the configuration that `react-scripts` provides, tweaking the configuration to your liking.
+
+> When you run `npm i`, npm will check the environment variable `NODE_ENV` to see if it's installing packages in a production environment. In production, npm only installs packages listed under `dependencies`. In development, npm installs all packages
+
+### `src/`
+
+Inside of `src/`, we see some JavaScript files:
+
+```shell
+❯ ls src/ -1p
+App.css
+App.js
+App.test.js
+index.css
+index.js
+logo.svg
+registerServiceWorker.js
+```
+
+### `App.js`
+
+Create React App has created a boilerplate React app which has a single component, `App`:
+
+```javascript
+import React, { Component } from "react";
+import logo from "./logo.svg";
+import "./App.css";
+
+class App extends Component {
+  render() {
+    return (
+      <div className="App">
+        <div className="App-header">
+          <img src={logo} className="App-logo" alt="logo" />
+          <h2>Welcome to React</h2>
+        </div>
+        <p className="App-intro">
+          To get started, edit <code>src/App.js</code> and save to reload.
+        </p>
+      </div>
+    );
+  }
+}
+
+export default App;
+```
+
+We import `React` and `Component` at the top of the file:
+
+```javascript
+import React, { Component } from "react";
+import logo from "./logo.svg";
+import "./App.css";
+```
+
+The other two `import`s aren't JavaScript. Webpack has you specify all your dependencies using this syntax. This is the ES6 module import syntax. Webpack will infer that by `"react"` we are referring to the npm package specified in our `package.json`. The `App` component itself is simple and does not employ state or props. Its return method is just markup. At the bottom of the file it specifies its export:
+
+```javascript
+export default App;
+```
+
+Our React component is entirely self-contained in this module. Any additional libraries, styles, and images could be specified at the top.
+
+### `index.js`
+
+```javascript
+import React from "react";
+import ReactDOM from "react-dom";
+import App from "./App";
+import "./index.css";
+
+ReactDOM.render(<App />, document.getElementById("root"));
+```
+
+Stepping through this file, we first import both `react` and `react-dom`. Because we specified App as the default export from `App.js`, we can import it here. Note again that the relative path (./App) signals to Webpack that we're referring to a local file, not an npm package. At this point, we can use our `App` component just as we have in the past. We make a call to `ReactDOM.render()`, rendering the component to the DOM on the `root` div.
+
+---
+
+## Booting the App
+
+```shell
+❯ npm start
+```
+
+This boots the Webpack development server. Visiting `http://localhost:3000/`, we see the interfact for the sample app that Create React App has provided. Viewing the source code (`view-source:http://localhost:3000/`) will present the same HTML file present in `index.html`, save for one key difference: there is a `script` tag appended to the bottom of the `body`
+
+```html
+<script type="text/javascript" src="/static/js/bundle.js"></script></body>
+```
+
+This script tag references a `bundle.js`. The Webpack development server inserted this line into our `index.html`.
+
+> This script defaults the server's port to `3000`. However, if it detects that the port is occupied, it will choose another.
+
+---
+
+## Webpack basics
+
+With Create React App, our static assets are served by the Webpack development server that is booted when we run `npm start`. The original `index.html` did not contain any references to the React app. Webpack inserted a reference to `bundle.js` in `index.html` before serving it to our browser. If you look around on disk, `bundle.js` doesn't exist anywhere. The Webpack development server produces this file on the fly and keeps it in memory. When our browser makes a request to `localhost:3000/`, Webpack is serving its modified version of `index.html` and `bundle.js` from memory. From the page `view-source:http://localhost:3000/`, you can click on `/static/js/bundle.js` to open that file in your browser. It contains all the JavaScript code that our app needs to run. Not only does it contain the entire source for `App.js` -- it contains the entire source for the React library. Serching for `App.js` will show something like this
+
+```javascript
+/***/ "./src/App.js":
+/*!********************!*\
+  !*** ./src/App.js ***!
+  \********************/
+/*! exports provided: default */
+/*! exports used: default */
+/***/
+```
+
+The module itself is encapsulated inside of a function that looks like this:
+
+```javascript
+(function(module, __webpack_exports__, __webpack_require__) {
+  //...
+}
+```
+
+In `App.js` we imported the logo, which was used to set the `src` on an `img` tag in the component's markup. In the `App.js` Webpack moodule, the variable declaration of `logo` should look like this:
+
+```javascript
+var __WEBPACK_IMPORTED_MODULE_1__logo_svg__ = __webpack_require__(
+  /*! ./logo.svg */ "./src/logo.svg"
+);
+```
+
+Webpack treats everything as a module, including image assets like `logo.svg`. We can get an idea of what's going on by picking out a path of the `logo.svg` and visit its address, it should return the React logo:
+
+```http
+http://localhost:3000/static/media/logo.5d5d9eef.svg
+```
+
+So Webpack created a Webpack module for `logo.svg` by defining a function. `__webpack_require__()` is a Webpack's special module loader. So we know what is happening: Webpack has rolled up every conceivable "module" for our app into `bundle.js`. You might be asking: Why? The first motivation is universal to JavaScript bundlers. Webpack has converted all our ES6 modules into its own bespoke ES5-compatible module syntax. Furthermore, Webpack, like other bundlers, consolidated all our JavaScript modules into a single file. While it could keep JavaScript modules in separate files, having a single file maximizes performance. The initiation and conclusion of each file transfer over HTTP adds overhead. Bundling up hundreds or thousands of smaller files into one bigger one produces a notable speed-up. Webpack takes this module paradigm further than other bundlers, however. It applies the same modular treatment to image assets, CSS, and npm packages (like React and ReactDOM). This modular paradigm unleashes a lot of power.
+
+---
+
+## Making modifications to the sample app
+
+The `react-scripts` package defines a start script. Think of this start script as a special interface to Webpack that contains some features and conventions provided by Create React App. At a high-level, the start script:
+
+- Sets up the Webpack configuration
+- Provides some nice formatting and coloring for Webpack's console output
+- Launches a web browser if you're on OS X
+
+One compelling development feature Webpack gives us is hot reloading. Hot reloading enables certain files in a web app to be hot-swapped on the fly whenever changes are detected without requiring a full page reload. We can change the speed at which the logo spins, or the color of the header's text and see changes instantly
+
+> Webpack includes client-side code to perform hot reloading inside `bundle.js`. The Webpack client maintains an open socket with the server. Whenever the bundle is modified, the client is notifies via this websocket. The client then makes a request to the server, asking for a patch to the bundle. Instead of fetchin the whole bundle, the server will just send the client the code that client needs to execute to "hot swap" the asset. Webpack's modular paradigm makes hot reloading of assets possible. Recall that Webpack inserts CSS into the DOM inside `style` tags. To swap out a modified CSS asset, the client removes the previous `style` tags and inserts the new one. The browser renders the modification for the user, all without a page reload.
+>
+> Working in WSL, if the hot-reload doesn't work, one possible solution is to declare the `start` script like this: `"CHOKIDAR_USEPOLLING=true react-scripts start"`
+
+Even though hot reloading is not supported for our JavaScript files, Webpack will still auto-reload the page whenever it detects changes. Because Webpack is at heart a platform for JavaScript development and deployment, there is an ever-growing ecosystem of plug-ins and tools for Webpack-powered apps.
+
+---
+
+## Creating a production build
+
+For production, we want Webpack to write a bundle to disk. We'll end up with a production-optimized build of our HTML, CSS, and JavaScript. We could then serve these assets using whatever HTTP server we wanted. To share our app with the world, we'd just need to upload this build to an asset host, like Amazon's S3. After quitting the server if it's running with `CTRL+C`, run the `build` command
+
+```shell
+❯ npm run build
+```
+
+This will create a `build` folder in the project's root
+
+```zsh
+❯ cd build
+❯ ls -1p
+asset-manifest.json
+favicon.ico
+index.html
+manifest.json
+service-worker.js
+static/
+```
