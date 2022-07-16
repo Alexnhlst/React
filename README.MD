@@ -42,31 +42,31 @@ The time tracking app had a Client module. That module's file defined a few func
 
 The `create-react-app` library provides a command you can use to initiate a new Webpack-powered React app
 
-```shell
+```bash
 create-react-app my-app-name
 ```
 
 The library will configure a "black box" Webpack setup for you. It provides you with the benefits of a Webpack setup while abstracting away the cconfiguration details. To use Create React App, we can install it globally from the command line using the `-g` flag
 
-```shell
+```bash
 ❯ npm i -g create-react-app@1.4.1
 ```
 
 > For the course we're using the version 1.4.1 specified by `@1.4.1`. It is recommended as it is the same version tested with the code provided with the course. To install the latest version use
 >
-> ```shell
+> ```bash
 > ❯ npm i -g create-react-app@latest
 > ```
 
 We're going to create a new app called `heart-webpack`:
 
-```shell
+```bash
 ❯ create-react-app heart-webpack --scripts-version=1.0.14
 ```
 
 This will create the boilerplate for the new app and install the app's dependencies. The `--scripts-version` flag ensures that `react-scripts` is the same as the one used in the book
 
-```shell
+```bash
 ❯ cd heart-webpack/
 ❯ ls -1p
 node_modules/
@@ -154,7 +154,7 @@ The stark difference from the `index.html` we've used in previous apps: there ar
 
 Inside of `src/`, we see some JavaScript files:
 
-```shell
+```bash
 ❯ ls src/ -1p
 App.css
 App.js
@@ -226,7 +226,7 @@ Stepping through this file, we first import both `react` and `react-dom`. Becaus
 
 ## Booting the App
 
-```shell
+```bash
 ❯ npm start
 ```
 
@@ -304,13 +304,13 @@ Even though hot reloading is not supported for our JavaScript files, Webpack wil
 
 For production, we want Webpack to write a bundle to disk. We'll end up with a production-optimized build of our HTML, CSS, and JavaScript. We could then serve these assets using whatever HTTP server we wanted. To share our app with the world, we'd just need to upload this build to an asset host, like Amazon's S3. After quitting the server if it's running with `CTRL+C`, run the `build` command
 
-```shell
+```bash
 ❯ npm run build
 ```
 
 This will create a `build` folder in the project's root
 
-```zsh
+```bash
 ❯ cd build
 ❯ ls -1p
 asset-manifest.json
