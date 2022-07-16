@@ -27,6 +27,7 @@
 4. [JSX and the virtual DOM](/../../tree/16-jsx-vdom/README.MD)
 5. [Advanced Component Configuration](/../../tree/17-advanced-configuration/README.MD)
 6. [Forms](/../../tree/18-forms/README.MD)
+7. [Using Webpack with Create React App](/../../tree/19-webpack/README.MD)
 
 [^1]: [Book](https://www.newline.co/react-from-zero/)
 [^2]: [Book](https://www.newline.co/fullstack-react)
