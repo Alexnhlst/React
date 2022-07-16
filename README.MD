@@ -9,6 +9,7 @@
 5. [Uncontrolled vs. Controlled Components](#uncontrolled-vs-controlled-components)
 6. [Multiple Fields](#multiple-fields)
 7. [On Validation](#on-validation)
+8. [Remote Data](#remote-data)
 
 ---
 
@@ -421,4 +422,376 @@ validate = (person) => {
 };
 ```
 
+Our `validate()` method is pretty simple and has two goals. First, we want to make sure that both name and email are present. By checking their truthiness we can know that they are defined and not empty strings. Second, we want to know that the provided email address looks valid. This is actually a bit of a thorny issue, so we rely on `validator`[^2] to let us know.
+
+```javascript
+onFormSubmit = (evt) => {
+  const people = [...this.state.people];
+  const person = this.state.fields;
+  const fieldErrors = this.validate(person);
+  this.setState({ fieldErrors });
+  evt.preventDefault();
+
+  if (Object.keys(fieldErrors).length) return;
+
+  this.setState({
+    people: people.concat(person),
+    fields: {
+      name: "",
+      email: "",
+    },
+  });
+};
+```
+
+To use the `validate()` method, we get the current values of our fields from `this.state.fields` and provide it as the argument. It will either return an empty object if there are no issues, or if there are issues, it will return an object with keys corresponding to each field name and values corresponding to each error message. In either case, we want to update our `state.fieldErrors` object so that `render()` can display or hide the messages as necessary. If the validation errors object has any keys (`Object.keys(fieldErrors).length > 0`) we know there are issues.
+
+Our form component is responsible for running the valiodations on the form as a whole as well as the individual validation rules for each field. It would be ideal if each field was responsible for identifying validation errors on its own input, and the parent form was only responsible for identifying issues at the form-level. To do this we're first going to create a new separate `Field` component, and we will use it instead of `input` elements in the form. Before we get into the creation of this new component, it will be useful to think of it at a high level in terms of inputs and outputs. In other words, "what information do we need to provide this component?", and "what kinds of things would we expect in return?" These inputs are going to become this component's `props` and the output will be used by any event handlers we pass into it. For the new Field component to do its job it will need the following:
+
+- `placeholder`: This will be passed straight through to the `input` child element. Similar to a label, this tells the user what data to the `Field` expectations
+- `name`: We want this for the same reason we provide `name` to `input` elements: we'll use this in the event handler decide where to store input data and validation errors
+- `value`: This is how our parent form can initialize the `Field` with a value, or it can use this to update the `Field` with a new value.
+- `validate`: A function that returns validation errors when running
+- `onChange`: An event handler to be run when the `Field` changes. This function will accept an event object as an argument
+
+We're able to set up `propTypes` on our new `Field` component:
+
+```javascript
+static propTypes = {
+  placeholder: PropTypes.string,
+  name: PropTypes.string.isRequired,
+  value: PropTypes.string,
+  validate: PropTypes.func,
+  onChange: PropTypes.func.isRequired
+}
+```
+
+There are only two pieces of data that `Field` will need, the current `value` and `error`.
+
+```javascript
+state = {
+  value: this.props.value,
+  error: false,
+};
+```
+
+One key difference is that our `Field` has a parent, and sometimes this parent will want to update the `value` `prop` of our `Field`. To allow this, we'll need to create a new lifecycle method, `getDerivedStateFromProps()` to accept the new `value` and update the `state`
+
+```javascript
+getDerivedStateFromProps(nextProps) {
+  return {value: nextProps.value}
+}
+```
+
+The `render()` method of `Field` should be pretty simple
+
+```javascript
+render() {
+  return (
+    <div>
+      <input
+        placeholder={this.props.placeholder}
+        value={this.state.value}
+        onChange={this.onChange}
+      />
+      <span style={{color: 'red'}}>{this.state.error}</span>
+    </div>
+  );
+}
+```
+
+For the `input` element, the `placeholder` will be passed in from the parent and is available from `this.props.placeholder`. The `value` of the `input` and the error message in the `span` will both be stored in the `state`. `value` comes from `this.state.value` and the error message is at `this.state.error`. Lastly, we'll set an `onChange` event handler that will be responsible for accepting user input, validating, updating state, and calling the parent's event handler as well.
+
+```javascript
+onChange (evt) {
+  const name = this.props.name;
+  const value = evt.target.value;
+  const error = this.props.validate ? this.props.validate(value) : false;
+
+  this.setState({value, error});
+
+  this.props.onChange({name, value, error});
+}
+```
+
+`this.onChange` handles four different responsibilities in as many lines. The event object gives us the current text in the `input` via its `target.value` property. Once we have that, we see if it passes validation. If `Field` was given a function for its `validate` `prop`, we use it here. If one was not given, we don't have to validate the input and `error` sets to `false`. Once we have both the `value` and `error` we can update our `state` so that they both appear in `render()`. However, it's not just the `Field` component that needs to be updated with this information. When `Field` is used by a parent component, it passes in its own event handler in as the `onChange` `prop`. We call this function so that we can pass information up the parent. Here in `this.onChange()`, it is available as `this.props.onChange()`, and we call it with three pieces of information: the `name`, `value`, and `error` of the `Field`.
+
+```javascript
+  render() {
+    return (
+      <div>
+        <h1>Sign Up Sheet</h1>
+
+        <form onSubmit={this.onFormSubmit}>
+          <Field
+            placeholder="Name"
+            name="name"
+            value={this.state.fields.name}
+            onChange={this.onInputChange}
+            validate={val => (val ? false : 'Name Required')}
+          />
+
+          <br />
+
+          <Field
+            placeholder="Email"
+            name="email"
+            value={this.state.fields.email}
+            onChange={this.onInputChange}
+            validate={val => (isEmail(val) ? false : 'Invalid Email')}
+          />
+
+          <br />
+
+          <input type="submit" disabled={this.validate()} />
+        </form>
+
+        <div>
+          <h3>People</h3>
+          <ul>
+            {this.state.people.map(({name, email}, i) => (
+              <li key={i}>
+                {name} ({email})
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+```
+
+`Field` is a drop-in replacement for `input`. All the `props` are the same as they were on `input`, except we have one additional `prop` this time: `validate`. In the `Field` component's `onChange()` method, we make a call to the `this.props.validate()` function. What we provide as the `validate` `prop` to `Field`, will be that function. Its goal is to take user provided input as its argument and give a return value that corresponds to the validity of that input. If the input is not valid, `validate` will return an error message. Otherwise, it returns `false`. For the "name" `Field` the `validate` `prop` we're just checking for a truthy value. As long as there are characters in the box, validation will pass, otherwise we return the `'Name Required'` error message. For the "email" `Field`, we're going to use the `isEmail()` function that we imported from the `validator` module. If that function returns `true`, we know it's a valid-looking email and validation passes. If not, we return the `'Invalid Email'` message. We conditionally disable the submit button. To do this, we set the value of the `disabled` `prop` to the return value of `this.validate()`. Because `this.validate()` will have a truthy return value if there are validation errors, the button will be disabled if the form is not valid.
+
+```javascript
+onInputChange = ({ name, value, error }) => {
+  const fields = Object.assign({}, this.state.fields);
+  const fieldErrors = Object.assign({}, this.state.fieldErrors);
+
+  fields[name] = value;
+  fieldErrors[name] = error;
+
+  this.setState({ fields, fieldErrors });
+};
+```
+
+Previously, the job of `onInputChange()` was to update `this.state.fields` with the current user input values. In other words, when a text field was edited, `onInputChange()` would be called with an event object. That event object had a `target` property that referenced the `input` element. Using that reference, we could get the `name` and `value` of the `input`, and with those, we would update `state.fields`. This time around `onInputChange()` has the same responsibility, but it is our `Field` component that calls this function, not `input`. This means that instead of using `evt.target.name` or `evt.target.value` as we did before, we get `name` and `value` directly from the argument object. In addition, we also get the validation error for each field. This is necessary -- for our form component to prevent submission, it will need to know about field-level validation errors. Once we have the `name`, `value`, and `error`, we can update two objects in our `state`, the `state.fields` object we used before, and a new object, `state.fieldErrors`. With both `render()` and `onInputChange()` updated, we again have a nice feedback loop set up for our `Field` components:
+
+- First, the user types into the `Field`
+- Then, the event handler of the `Field` is called, `onInputChange()`
+- Next, `onInputChange()` updates the `state`
+- After, the form is rendered again, and the `Field` passed an updated `value` `prop`
+- Then, `getDerivedStateFromProps()` is called in `Field` with the new `value`, and returns the new state
+- Finally, `Field.render()` is called again, and the text field shows the appropriate input and validation error.
+
+```javascript
+onFormSubmit = (evt) => {
+  const people = this.state.people;
+  const person = this.state.fields;
+
+  evt.preventDefault();
+
+  if (this.validate()) return;
+
+  this.setState({
+    people: people.concat(person),
+    fields: {
+      name: "",
+      email: "",
+    },
+  });
+};
+```
+
+The objective of `onFormSubmit()` hasn't changed. It is still responsible for either adding a person to the list, or preventing that behavior if there are validation issues. To check for validation errors, we call `this.validate()`, and if there are any, we return early before adding the new person to the list.
+
+```javascript
+  validate () {
+    const person = this.state.fields;
+    const fieldErrors = this.state.fieldErrors;
+    const errMessages = Object.keys(fieldErrors).filter((k) => fieldErrors[k])
+
+    if (!person.name) return true;
+    if (!person.email) return true;
+    if (errMessages.length) return true;
+
+    return false
+  },
+```
+
+`validate()` is checking to make sure the data is valid at the form level. For the form to pass validation at this level it must satisfy two requirements: (1) neither field may be empty and (2) there must not be any field-level validation errors. To satisfy the first requirement, we access `this.state.fields` and ensure that both `state.fields.name` and `state.fields.email` are truthy. These are kept up to date by `onInputChange()`, so it will always match what is in the text fields. If either `name` or `email` are missing, we return `true`, signaling that there is a validation error. For the second requirement, we look at `this.state.fieldErrors`. `onInputChange()` will set any field-level validation error messages on this object. We use `Object.keys` and `Array.filter` to get an array of all present error messages. If there are any field-level validation issues, there will be corresponding error messages in the array, and its length will be non-zero and truthy. If that's the case, we also return `true` to signal the existence of a validation error.
+
+---
+
+## Remote Data
+
+The most common example is to allow the user to select a car by year, make, and model. First the user selects a year, then the manufacturer, then the model. After choosing an option in one `select`, the next one becomes available. There are two interesting facets to building a component like this. First, not all combinations make sense. Second, we don't want to send the entire database of valid choices to the browser. Instead, the browser only knows the top level of choices. When the user makes a selection, we providee the selected value to the server and ask for next level. Because the next level of options come from the server, this is an asynchronous activity. Our app won't be interested in the user's car, but we will want to know what they're signing up for. Let's make this an app for users to learn more JavaScript by choosing a NodeSchool[^3] workshop to attend. We'll create a custom component to handle both the hierarchical and asynchronous nature of these fields. By using a custom component, our form will barely have to change. Any logic specific to the workshop selection will be hidden in the component. Before starting on our new `CourseSelect` component, we should think about how we want it to communicate with its form parent. This will determine the component's `props`. The most obvious on is `onChange()`. The purpose of this component is to help the user make a department/course selection and to make that data available to the form. Additionally, we'll want to be sure that `onChange()` is called with the same arguments we're expecting from other field components. We also want the form to be able to set this component's state if need be. This is particularly useful when we want to clear the selections after the user has submitted their info. For this we'll accept two props. One for `department` and one for `course`.
+
+```javascript
+static propTypes = {
+  department: PropTypes.string,
+  course: PropTypes.string,
+  onChange: PropTypes.func.isRequired
+}
+```
+
+Next, we can think about the `state` that `CourseSelect` will need to keep track of. The two most obvious pieces of state are `department` and `course`. Those will change when the user makes selections, and when the form parent clears them on a submit. `CourseSelect` will also need to keep track of available courses for a given department. When a user selects a department, we'll asynchronously fetch the corresponding course list. Once we have that list we'll want to store it in our `state` as `courses`. When dealing with asynchronous fetching, it's nice to inform the user that data is loading behind the scenes. We will also keep track of whether or not data is loading in our `state` as `_loading`
+
+> The underscore prefix is just a convention to highlight that is purely presentational. Presentational state is only used for UI effects
+
+```javascript
+state = {
+  department: null,
+  course: null,
+  courses: [],
+  _loading: false,
+};
+```
+
+This component's form parent will want to update the `department` and `course` `props`. Our `getDerivedStateFromProps()` method will use the update to appropriately modify the `state`
+
+```javascript
+getDerivedStateFromProps(update) {
+  return {
+    department: update.department,
+    course: update.course
+  }
+}
+```
+
+The `render()` method is mainly composed of two functions, `renderDepartmentSelect()` and `renderCourseSelect()`
+
+```javascript
+render() {
+  return (
+    <div>
+      {this.renderDepartmentSelect()}
+      <br />
+      {this.renderCourseSelect()}
+    </div>
+  )
+}
+```
+
+`renderDepartmentSelect()` returns a `select` element that displays one of three options. The currently displayed option depends on the `value` `prop` of the `select`. The option whose `value` matches the `select` will be shown. The value of `select` is `this.state.department || ""`, if `this.state.department` is falsy (it is by default), the `value` will be an empty string and will match "Which department?" Otherwise, if `this.state.department` is either `"core"` or `"electives"`, it will display one of the other options. Because `this.onSelectDepartment` is set as the `onChange` `prop` of the `select`, when the user changes the option, `onSelectDepartment()` is called with the change event.
+
+```javascript
+onSelectDepartment = (evt) => {
+  const department = evt.target.value;
+  const course = null;
+  this.setState({ department, course });
+  this.props.onChange({ name: "department", value: department });
+  this.props.onChange({ name: "course", value: course });
+
+  if (department) this.fetch(department);
+};
+```
+
+When the department is changed, we want three things to happen. First, we want to update `state` to match the selected department option. Second, we want to propagate the change via the `onChange` handler provided in the `props` of `CourseSelect`. Third, we want to fetch the available courses for the department. When we update the `state`, we update it to the value of the event's `target`, the `select`. The value of the `select` is the value of the chosen `option`. After the `state` is set with a new value, `render()` and `renderDepartmentSelect()` are run and a new option is displayed. We also reset the course. Each course is only valid for its department. If the department changes, it will no longer be a valid choice. Therefore, we set it back to its initial value, `null`. After updating `state`, we propagate the change to the component's change handler, `this.props.onChange`. Because we use the arguments as we have previously, this component can be used just like `Field` and can be given the same handler function. The only trick is that we need to call it twice, once for each input. Finally, if a department was selected, we fetch the course list for it.
+
+```javascript
+fetch = (department) => {
+  this.setState({ _loading: true, courses: [] });
+  apiClient(department).then((courses) => {
+    this.setState({ _loading: false, courses: courses });
+  });
+};
+```
+
+The responsibility of this method is to take a `department` string, use it to asynchronously get the corresponding course list, `courses`, and update the `state` with it. However, we also want to be sure to affect the `state` for a better user experience. We do this by updating the `state` before the `apiClient` call. We know that we'll be waiting for the response with the new course list, and in that time we should show the user a loading indicator. To do that, we need our `state` to reflect our fetch state. Right before the `apiClient` call, we set the `state` of `_loading` to `true`. If `state._loading` is true, `renderCourseSelect()` only returns a single `img`: a loading indicator. Alternatively, if we're not loading, but a department has not been selected, an empty `span` is returned -- effectively hiding this half of the component. The biggest difference between `renderCourseSelect()` and `renderDepartmentSelect()` is that `renderCourseSelect()` dynamically populates the `option` children of the `select` The first option in this `select` is "Which course?" which has an empty string as its value. If the user has not yet selected a course, this is what they should see. The options that follow the first come from the course list stored in `state.courses`. To provide all the child `option` elements to the `select` at once, the `select` is given a single array as its child. The first item in the array is an element for our "Which course?" option. Then, we use the spread operator combined with `map()` so that from the second item on, the array contains the course options from `state`. Each item in the array is an `option` element. Like before, each element has text that it displaysas well as a value `prop`. If the `value` of the `select` matches the `value` of the `option`, that `option` will be displayed. By default, the `value` of the `select` will be an empty string, so it will match the "Which course?" `option`. Once the user chooses a course and we are able to update `state.course`, the corresponding course will be shown. Lastly, we provide a change handler function, `onSelectCourse(`) to the `select` `prop` `onChange`. When the user chooses a course, that function will be called with a related event object. We will then use information from that event to update the state and notify the parent.
+
+```javascript
+onSelectCourse = (evt) => {
+  const course = evt.target.value;
+  this.setState({ course });
+  this.props.onChange({ name: "course", value: course });
+};
+```
+
+Because we were careful to call the change handler from within `CourseSelect` (`this.props.onChange`) with a `{name, value}` object the way that `onInputChange()` expects, we're able to reuse that handler. When `onInputChange()` is called by `CourseSelect`, it can appropriately update `state` with the new department and course information.
+
+```javascript
+  render() {
+    return (
+      <div>
+        <h1>Sign Up Sheet</h1>
+
+        <form onSubmit={this.onFormSubmit}>
+          <Field
+            placeholder="Name"
+            name="name"
+            value={this.state.fields.name}
+            onChange={this.onInputChange}
+            validate={val => (val ? false : 'Name Required')}
+          />
+
+          <br />
+
+          <Field
+            placeholder="Email"
+            name="email"
+            value={this.state.fields.email}
+            onChange={this.onInputChange}
+            validate={val => (isEmail(val) ? false : 'Invalid Email')}
+          />
+
+          <br />
+
+          <CourseSelect
+            department={this.state.fields.department}
+            course={this.state.fields.course}
+            onChange={this.onInputChange}
+          />
+
+          <br />
+
+          <input type="submit" disabled={this.validate()} />
+        </form>
+
+        <div>
+          <h3>People</h3>
+          <ul>
+            {this.state.people.map(({name, email, department, course}, i) => (
+              <li key={i}>{[name, email, department, course].join(' - ')}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+```
+
+When adding `CourseSelect` we provide three `props`:
+
+1. The current department from `state`
+2. The current course from `state`
+3. The `onInputChange()` handler
+
+The only thing left to do is add these fields to our form-level validation. Our `CourseSelect` controls the UI to ensure that we won't get invalid data, so we don't need to worry about field-level errors. However, department and course are required fields, we should make sure that they are present before allowing the user to submit. We do this by updating our `validate()` method to include them:
+
+```javascript
+validate = () => {
+  const person = this.state.fields;
+  const fieldErrors = this.state.fieldErrors;
+  const errMessages = Object.keys(fieldErrors).filter((k) => fieldErrors[k]);
+
+  if (!person.name) return true;
+  if (!person.email) return true;
+  if (!person.course) return true;
+  if (!person.department) return true;
+  if (errMessages.length) return true;
+
+  return false;
+};
+```
+
+<details>
+  <summary>Separation of View and State</summary>
+
+> Once we've received information from the user and we've decided that it's valid, we then need to convert the information to JavaScript objects. Depending on the form, this could involve casting input values from strings to numbers, dates, or booleans, or it could be more involved if you need to impose a hierarchy by corralling the values into arrays or nested objects. After we have the information as JavaScript objects, we then have to decide how to use them. The objects might be sent to a server as JSON to be stored in a database, encoded in a url to be used as a search query, or maybe only used to configure how the UI looks. The information in those objects will almost always affect the UI and in many cases will also affect your application's behavior. It's up to us to determine how to store that info in our app.
+
+</details>
+
 [^1]: [SyntheticEvent](https://reactjs.org/docs/events.html)
+[^2]: [Validator](https://www.npmjs.com/package/validator)
+[^3]: [NodeSchool](https://nodeschool.io/)
