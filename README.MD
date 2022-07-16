@@ -10,6 +10,7 @@
 6. [Multiple Fields](#multiple-fields)
 7. [On Validation](#on-validation)
 8. [Remote Data](#remote-data)
+9. [Async Persistence](#async-persistence)
 
 ---
 
@@ -791,6 +792,185 @@ validate = () => {
 > Once we've received information from the user and we've decided that it's valid, we then need to convert the information to JavaScript objects. Depending on the form, this could involve casting input values from strings to numbers, dates, or booleans, or it could be more involved if you need to impose a hierarchy by corralling the values into arrays or nested objects. After we have the information as JavaScript objects, we then have to decide how to use them. The objects might be sent to a server as JSON to be stored in a database, encoded in a url to be used as a search query, or maybe only used to configure how the UI looks. The information in those objects will almost always affect the UI and in many cases will also affect your application's behavior. It's up to us to determine how to store that info in our app.
 
 </details>
+
+---
+
+## Async Persistence
+
+In most web apps, when a user inputs data, that data should be sent to a server for safe keeping in a database. When the user returns to the app, the data can be fetched, and the app can pick back up right where it left off. We won't be sending the data to a remote server or storing it in a database (we'll be using `localStorage` instead), we'll treat it as an asynchronous operation to illustrate how almost any persistence strategy could be used. To persist the sign up list (`state.people`), we'll only need to make a few changes to our parent form component. At a high level they are:
+
+1. Modify `state` to keep track of persistence status. Basically, we'll want to know if the app is currently loading, is currently saving, or encountered an error during either operation.
+2. Make a request using our API client to get any previously persisted data and load it into our `state`.
+3. Update our `onFormSubmit()` event handler to trigger a save.
+4. Change our `render()` method so that the "submit" button both reflects the current save status and prevents the user from performing an unwanted action like a double-save.
+
+```javascript
+state = {
+  fields: {
+    name: "",
+    email: "",
+    course: null,
+    department: null,
+  },
+  fieldErrors: {},
+  people: [],
+  _loading: false,
+  _saveStatus: "READY",
+};
+```
+
+`_saveStatus` is initialized with the value `"READY"`, but we will have four possible values: `"READY"`, `"SAVING"`, `"SUCCESS"`, and `"ERROR"`. If the `_saveStatus` is either `"SAVING"` or `"SUCCESS"`, we'll want to prevent the user from making an additional save. When the component has been successfully loaded and is about to be added to the DOM, we'll want to request any previously saved data. To do this we'll add the lifecycle method `componentDidMount()` which is automatically called by React at the appropriate time. Here's what that looks like:
+
+```javascript
+componentDidMount() {
+  this.setState({_loading: true});
+  apiClient.loadPeople().then(people => {
+    this.setState({_loading: false, people: people})
+  })
+}
+```
+
+Before we start the fetch with `apiClient`, we set `state._loading` to `true`. We'll use this in `render()` to show a loading indicator. Once the fetch returns, we update our `state.people` list with the previously persisted list and set `_loading` back to `false`. As in the previous sections, we'll want our user to be able to fill out each field and hit "submit" to add a person to the list. When they do that, `onFormSubmit()` is called. We'll make a change so that we not only perform the previous behavior, but we also persist that list using `apiClient.savePeople()`:
+
+```javascript
+onFormSubmit = (evt) => {
+  const person = this.state.fields;
+
+  evt.preventDefault();
+
+  if (this.validate()) return;
+
+  const people = [...this.state.people, person];
+
+  this.setState({ _saveStatus: "SAVING" });
+  apiClient
+    .savePeople(people)
+    .then(() => {
+      this.setState({
+        people: people,
+        fields: {
+          name: "",
+          email: "",
+          course: null,
+          department: null,
+        },
+        _saveStatus: "SUCCESS",
+      });
+    })
+    .catch((err) => {
+      console.error(err);
+      this.setState({ _saveStatus: "ERROR" });
+    });
+};
+```
+
+In the previous sections, if the data passed validation, we would just update our `state.people` list to include it. This time we'll also add the `person` to the `people` list, but we only want to update our `state` if `apiClient` can successfully persist. The order of operations looks like this:
+
+1. Create a new array, `people` with both the contents of `state.people` and the new `person` object.
+2. Update `state._saveStatus` to `"SAVING"`
+3. Use `apiClient` to begin persisting the new `people` array from #1.
+4. If `apiClient` is successful, update `state` with our new `people` array, an empty fields object, and `_saveStatus: "SUCCESS"`. If `apiClient` is not successful, leave everything as is, but set `state._saveStatus` to `"ERROR"`.
+
+Our last change is to modify our render() method so that the UI accurately reflects our status with respect to loading and saving.
+
+```javascript
+  render() {
+    if (this.state._loading) {
+      return <img alt="loading" src="/img/loading.gif" />;
+    }
+
+    return (
+      <div>
+        <h1>Sign Up Sheet</h1>
+
+        <form onSubmit={this.onFormSubmit}>
+          <Field
+            placeholder="Name"
+            name="name"
+            value={this.state.fields.name}
+            onChange={this.onInputChange}
+            validate={val => (val ? false : 'Name Required')}
+          />
+
+          <br />
+
+          <Field
+            placeholder="Email"
+            name="email"
+            value={this.state.fields.email}
+            onChange={this.onInputChange}
+            validate={val => (isEmail(val) ? false : 'Invalid Email')}
+          />
+
+          <br />
+
+          <CourseSelect
+            department={this.state.fields.department}
+            course={this.state.fields.course}
+            onChange={this.onInputChange}
+          />
+
+          <br />
+
+          {
+            {
+              SAVING: <input value="Saving..." type="submit" disabled />,
+              SUCCESS: <input value="Saved!" type="submit" disabled />,
+              ERROR: (
+                <input
+                  value="Save Failed - Retry?"
+                  type="submit"
+                  disabled={this.validate()}
+                />
+              ),
+              READY: (
+                <input
+                  value="Submit"
+                  type="submit"
+                  disabled={this.validate()}
+                />
+              )
+            }[this.state._saveStatus]
+          }
+        </form>
+
+        <div>
+          <h3>People</h3>
+          <ul>
+            {this.state.people.map(({name, email, department, course}, i) => (
+              <li key={i}>{[name, email, department, course].join(' - ')}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    );
+  }
+```
+
+First, we want to show the user a loading indicator while we are loading previously persisted data. Like the previous section, this is done on the first line of `render()` with a conditional and an early return. Next, we want the submit button to communicate the current save status. If no save request is in-flight, we want the button to be enabled if the field data is valid. If we are in the process of saving, we want the button to read "Saving..." and to be disabled. The user will know that the app is busy, and since the button is disabled, they won't be able to submit duplicate save requests. If the save request resulted in an error, we use the button text to communicate that and indicate that they can try again. The button will be enabled if the input data is still valid. Finally, if the save request completed successfully, we use the button text to communicate that. Here's how we render the button:
+
+```javascript
+  {{
+    SAVING: <input value='Saving...' type='submit' disabled />,
+    SUCCESS: <input value='Saved!' type='submit' disabled/>,
+    ERROR: <input value='Save Failed - Retry?' type='submit' disabled={this.validate()}/>,
+    READY: <input value='Submit' type='submit' disabled={this.validate()}/>
+  }[this.state._saveStatus]}
+```
+
+What we have here are four different buttons -- one for each possible `state._saveStatus`. Each button is the value of an object keyed by its corresponding status. By accessing the key of the current save status, this expression will evaluate to the appropriate button. The last thing that we have to do is related to the `"SUCCESS"` case. We want to show the user that the addition was a success, and we do that by changing the text of the button. However, "Saved!" is not a call to action. If the user enters another person's information and wants to add it to the list, our button would still say "Saved!". It should say "Submit" to more accurately reflect its purpose. The easy fix for this is to change our `state._saveStatus` back to `"READY"` as soon as they start entering information again. To do this, we update our `onInputChange()` handler
+
+```javascript
+onInputChange = ({ name, value, error }) => {
+  const fields = this.state.fields;
+  const fieldErrors = this.state.fieldErrors;
+
+  fields[name] = value;
+  fieldErrors[name] = error;
+
+  this.setState({ fields, fieldErrors, _saveStatus: "READY" });
+};
+```
 
 [^1]: [SyntheticEvent](https://reactjs.org/docs/events.html)
 [^2]: [Validator](https://www.npmjs.com/package/validator)
